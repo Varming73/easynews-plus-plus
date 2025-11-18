@@ -12,6 +12,10 @@
 
 </div>
 
+# Project discontinuation notice
+
+**Important Notice:** As of June 2025, active development and maintenance of Easynews++ has been discontinued. While the project will remain available for use, no further updates, bug fixes, or support will be provided. Users are encouraged to explore alternative solutions for their Easynews needs. We thank the community for their support throughout the project's lifespan.
+
 > [!NOTE]  
 > Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Built upon the foundation of Easynews+, it implements a different authentication approach to ensure seamless operation across various platforms including Stremio, Omni, Vidi and Fusion.
 
