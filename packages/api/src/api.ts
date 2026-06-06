@@ -1,6 +1,6 @@
 import { EasynewsSearchResponse, FileData, SearchOptions } from './types';
 import { createBasic } from './utils';
-import { createLogger } from 'easynews-plus-plus-shared';
+import { createLogger, parseIntEnv } from 'easynews-plus-plus-shared';
 
 // Create a logger with API prefix and explicitly set the level from environment variable
 export const logger = createLogger({
@@ -13,7 +13,7 @@ export class EasynewsAPI {
   private readonly username: string;
   private readonly password: string;
   private readonly cache = new Map<string, { data: EasynewsSearchResponse; timestamp: number }>();
-  private readonly cacheTTL = 1000 * 60 * 60 * parseInt(process.env.CACHE_TTL || '24'); // 24 hours
+  private readonly cacheTTL = 1000 * 60 * 60 * parseIntEnv(process.env.CACHE_TTL, 24); // 24 hours
 
   constructor(options: { username: string; password: string }) {
     if (!options) {
@@ -28,7 +28,7 @@ export class EasynewsAPI {
     return JSON.stringify({
       query: options.query,
       pageNr: options.pageNr || 1,
-      maxResults: parseInt(process.env.MAX_RESULTS_PER_PAGE || '250'),
+      maxResults: parseIntEnv(process.env.MAX_RESULTS_PER_PAGE, 250),
       sort1: options.sort1 || 'dsize',
       sort1Direction: options.sort1Direction || '-',
       sort2: options.sort2 || 'relevance',
@@ -66,7 +66,7 @@ export class EasynewsAPI {
   async search({
     query,
     pageNr = 1,
-    maxResults = parseInt(process.env.MAX_RESULTS_PER_PAGE || '250'),
+    maxResults = parseIntEnv(process.env.MAX_RESULTS_PER_PAGE, 250),
     sort1 = 'dsize',
     sort1Direction = '-',
     sort2 = 'relevance',
@@ -174,9 +174,9 @@ export class EasynewsAPI {
     };
 
     // Set constants for result limits
-    const TOTAL_MAX_RESULTS = parseInt(process.env.TOTAL_MAX_RESULTS || '500'); // Maximum total results to return
-    const MAX_PAGES = parseInt(process.env.MAX_PAGES || '10'); // Safety limit on number of page requests
-    const MAX_RESULTS_PER_PAGE = parseInt(process.env.MAX_RESULTS_PER_PAGE || '250'); // Maximum results per page
+    const TOTAL_MAX_RESULTS = parseIntEnv(process.env.TOTAL_MAX_RESULTS, 500); // Maximum total results to return
+    const MAX_PAGES = parseIntEnv(process.env.MAX_PAGES, 10); // Safety limit on number of page requests
+    const MAX_RESULTS_PER_PAGE = parseIntEnv(process.env.MAX_RESULTS_PER_PAGE, 250); // Maximum results per page
 
     logger.info(
       `Search limits: max ${TOTAL_MAX_RESULTS} results, max ${MAX_PAGES} pages, ${MAX_RESULTS_PER_PAGE} per page`
@@ -184,6 +184,9 @@ export class EasynewsAPI {
 
     let pageNr = 1;
     let pageCount = 0;
+    // Track the first item of the previous page to detect the API re-serving the
+    // same page (cycling) regardless of which page number we are on.
+    let previousFirstHash: string | undefined;
 
     try {
       while (pageCount < MAX_PAGES) {
@@ -216,11 +219,13 @@ export class EasynewsAPI {
           break;
         }
 
-        // Duplicate detection - stop if first item of new page matches first item of previously fetched data
-        if (data.length > 0 && newData[0]?.['0'] === data[0]?.['0']) {
+        // Duplicate detection - stop if this page's first item matches the
+        // previous page's first item (the API re-served the same page).
+        if (previousFirstHash !== undefined && newData[0]?.['0'] === previousFirstHash) {
           logger.debug(`Duplicate results detected, stopping pagination`);
           break;
         }
+        previousFirstHash = newData[0]?.['0'];
 
         logger.debug(`Adding ${newData.length} results from page ${pageNr}`);
         data.push(...newData);

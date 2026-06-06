@@ -22,7 +22,7 @@ import { publicMetaProvider } from './meta.js';
 import { Stream } from './types.js';
 import customTitlesJson from '../../../custom-titles.json' with { type: 'json' };
 import { getUILanguage, translations } from './i18n/index.js';
-import { createLogger } from 'easynews-plus-plus-shared';
+import { createLogger, parseIntEnv } from 'easynews-plus-plus-shared';
 
 // Extended configuration interface
 interface AddonConfig {
@@ -357,7 +357,7 @@ builder.defineStreamHandler(
       }[] = [];
 
       // Early exit condition - limit API calls
-      const TOTAL_MAX_RESULTS = parseInt(process.env.TOTAL_MAX_RESULTS || '500');
+      const TOTAL_MAX_RESULTS = parseIntEnv(process.env.TOTAL_MAX_RESULTS, 500);
       let totalFoundResults = 0;
 
       // Helper function to count total unique results across all searches
@@ -572,8 +572,6 @@ builder.defineStreamHandler(
 
           streams.push(
             mapStream({
-              username,
-              password,
               fullResolution: file.fullres,
               fileExtension: getFileExtension(file),
               duration: getDuration(file),
@@ -1224,6 +1222,12 @@ builder.defineStreamHandler(
         logger.info(`Found 0 streams total for ${id}`);
       }
 
+      // Remove the internal sorting helper before caching/returning so the raw
+      // Easynews file payload is neither serialized to clients nor held in cache.
+      for (const stream of streams) {
+        delete (stream as { _temp?: unknown })._temp;
+      }
+
       // Cache the result
       setCache(cacheKey, { streams, ...getCacheOptions(streams.length) });
 
@@ -1248,8 +1252,6 @@ builder.defineStreamHandler(
 );
 
 function mapStream({
-  username,
-  password,
   duration,
   size,
   fullResolution,
@@ -1262,8 +1264,6 @@ function mapStream({
 }: {
   title: string;
   url: string;
-  username: string;
-  password: string;
   fileExtension: string;
   videoSize: number | undefined;
   duration: string | undefined;

@@ -352,6 +352,13 @@ export async function publicMetaProvider(
   preferredLanguage?: string
 ): Promise<MetaProviderResponse> {
   return imdbMetaProvider(id, preferredLanguage)
+    .catch(error => {
+      // The IMDb suggestion API can return no match (e.g. obscure or non-English
+      // titles), which previously threw and skipped the Cinemeta fallback
+      // entirely. Treat any IMDb failure as "no result" so we fall back.
+      logger.debug(`IMDb metadata lookup failed, falling back to Cinemeta: ${error}`);
+      return { name: '' } as MetaProviderResponse;
+    })
     .then(meta => {
       if (meta.name) {
         return meta;

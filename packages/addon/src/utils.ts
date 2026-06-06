@@ -49,12 +49,6 @@ export const logger = createLogger({
   level: process.env.EASYNEWS_LOG_LEVEL || undefined, // Use the environment variable if set
 });
 
-// Add interface to declare the function with properties
-interface TypeFunction {
-  (type?: string): string;
-  currentType: string;
-}
-
 export function isBadVideo(file: FileData) {
   const duration = file['14'] ?? '';
   const title = getPostTitle(file);
@@ -582,15 +576,6 @@ export function buildSearchQuery(type: ContentType, meta: MetaProviderResponse) 
 
   logger.debug(`Final search query: ${query}`);
   return query;
-}
-
-/**
- * Format a timestamp for logging
- * @returns Formatted timestamp [HH:MM:SS]
- */
-function getTimestamp(): string {
-  const now = new Date();
-  return `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
 }
 
 // These methods should remain at the bottom of the file

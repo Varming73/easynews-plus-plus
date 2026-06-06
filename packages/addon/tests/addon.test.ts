@@ -101,6 +101,11 @@ vi.mock('easynews-plus-plus-shared', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  parseIntEnv: (value: string | undefined, fallback: number) => {
+    if (value === undefined || value === '') return fallback;
+    const n = parseInt(value, 10);
+    return Number.isNaN(n) ? fallback : n;
+  },
 }));
 
 // Mock custom-titles.json
@@ -159,6 +164,21 @@ describe('Addon', () => {
     expect(stream).toHaveProperty('description');
     expect(stream).toHaveProperty('url');
     expect(stream.name).toContain('Easynews++');
+  });
+
+  it('does not leak the internal _temp field on returned streams', async () => {
+    const streamHandler = (global as any).streamHandler;
+
+    const result = await streamHandler({
+      id: 'tt1234567',
+      type: 'movie',
+      config: { username: 'testuser', password: 'testpass' },
+    });
+
+    expect(result.streams.length).toBeGreaterThan(0);
+    for (const stream of result.streams) {
+      expect(stream).not.toHaveProperty('_temp');
+    }
   });
 
   it('should handle stream request with missing credentials', async () => {

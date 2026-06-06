@@ -13,6 +13,11 @@ vi.mock('easynews-plus-plus-shared', () => ({
     info: vi.fn(),
     error: vi.fn(),
   }),
+  parseIntEnv: (value: string | undefined, fallback: number) => {
+    if (value === undefined || value === '') return fallback;
+    const n = parseInt(value, 10);
+    return Number.isNaN(n) ? fallback : n;
+  },
 }));
 
 describe('EasynewsAPI', () => {
@@ -150,5 +155,33 @@ describe('EasynewsAPI', () => {
     delete process.env.TOTAL_MAX_RESULTS;
     delete process.env.MAX_PAGES;
     delete process.env.MAX_RESULTS_PER_PAGE;
+  });
+
+  it('stops paginating when the API re-serves the previous page (no duplicates)', async () => {
+    const searchSpy = vi.spyOn(api, 'search');
+    const page = (...hashes: string[]) =>
+      ({ data: hashes.map(h => ({ '0': h })), results: hashes.length }) as any;
+
+    // page1 -> [a,b], page2 -> [c,d], page3 repeats page2 -> [c,d] (API cycling).
+    searchSpy
+      .mockResolvedValueOnce(page('a', 'b'))
+      .mockResolvedValueOnce(page('c', 'd'))
+      .mockResolvedValueOnce(page('c', 'd'))
+      .mockResolvedValue(page()); // empty thereafter
+
+    process.env.TOTAL_MAX_RESULTS = '100';
+    process.env.MAX_PAGES = '10';
+    process.env.MAX_RESULTS_PER_PAGE = '2';
+
+    const result = await api.searchAll({ query: 'test' });
+
+    delete process.env.TOTAL_MAX_RESULTS;
+    delete process.env.MAX_PAGES;
+    delete process.env.MAX_RESULTS_PER_PAGE;
+
+    const hashes = result.data.map(d => d['0']);
+    // No duplicate file hashes should be accumulated.
+    expect(new Set(hashes).size).toBe(hashes.length);
+    expect(hashes).toEqual(['a', 'b', 'c', 'd']);
   });
 });
