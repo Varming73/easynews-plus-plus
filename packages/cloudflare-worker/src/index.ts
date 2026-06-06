@@ -95,6 +95,8 @@ app.get('/resolve/:payload/:filename', async c => {
         Range: 'bytes=0-0',
       },
       redirect: 'manual',
+      // Abort a hung Easynews connection instead of hanging the request.
+      signal: AbortSignal.timeout(20_000),
     });
 
     // If we got a 3xx (redirect), grab the Location header; otherwise fall back

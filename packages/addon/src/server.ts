@@ -158,6 +158,9 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
         Range: 'bytes=0-0', // only fetch first byte
       },
       maxRedirects: 5,
+      // Abort a hung Easynews connection instead of holding the socket open
+      // indefinitely (mirrors the 20s timeout on the search request in api.ts).
+      timeout: 20_000,
       // Strip the Authorization header on any cross-host hop so the user's
       // Easynews credentials are never forwarded off easynews.com.
       beforeRedirect: stripAuthOnForeignHost(originalHost),
@@ -180,9 +183,17 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
       }
     );
 
+    // The 'timeout' event fires but does not abort on its own — destroy the
+    // request so it doesn't hang, and respond 504.
+    request.on('timeout', () => {
+      logger.error(`Timed out resolving stream ${cleanUrl}`);
+      request.destroy(new Error('resolve timeout'));
+      if (!res.headersSent) res.status(504).send('Timed out resolving stream');
+    });
+
     request.on('error', (err: Error) => {
       logger.error(`Error resolving stream ${cleanUrl}:`, err);
-      res.status(502).send('Error resolving stream');
+      if (!res.headersSent) res.status(502).send('Error resolving stream');
     });
 
     request.end();
