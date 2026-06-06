@@ -13,9 +13,13 @@ COPY package*.json ./
 COPY packages/addon/package*.json ./packages/addon/
 COPY packages/api/package*.json ./packages/api/
 COPY packages/shared/package*.json ./packages/shared/
+# Copy the cloudflare-worker manifest too so `npm ci` sees the complete workspace
+# set (defensive against npm versions that reject a missing workspace), even
+# though this image only builds/runs the addon server.
+COPY packages/cloudflare-worker/package*.json ./packages/cloudflare-worker/
 
-# Install dependencies.
-RUN npm install
+# Install dependencies (clean, reproducible install from the committed lockfile).
+RUN npm ci
 
 # Copy source files.
 COPY tsconfig.*json ./
@@ -50,6 +54,10 @@ COPY --from=builder /build/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /build/custom-titles.json ./custom-titles.json
 
 COPY --from=builder /build/node_modules ./node_modules
+
+# Run as the unprivileged 'node' user (present in the official node images)
+# rather than root. The app only reads its files and binds a high port.
+USER node
 
 EXPOSE 1337
 
