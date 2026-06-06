@@ -235,7 +235,7 @@ export const translations: Translations = {
       configCopied: 'Copied!',
       version: 'Version',
       description:
-        'Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Join our community on <a href="https://discord.gg/Ma4SnagqwE">Discord</a> or contribute on <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Join our community on <a href="https://discord.gg/Ma4SnagqwE">Discord</a> or contribute on <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Sponsor',
     },
     form: {
@@ -295,7 +295,7 @@ export const translations: Translations = {
       configCopied: 'Kopiert!',
       version: 'Version',
       description:
-        'Easynews++ ist ein Open-Source-Addon, das die Easynews-Erfahrung mit überlegener Leistung, erweiterten Suchfunktionen und intelligenter Stream-Auswahl verbessert. Es bietet benutzerdefinierte Titelunterstützung, Multi-Plattform-Kompatibilität und Self-Hosting-Optionen. Trete unserer Community auf <a href="https://discord.gg/Ma4SnagqwE">Discord</a> bei oder trage auf <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a> bei.',
+        'Easynews++ ist ein Open-Source-Addon, das die Easynews-Erfahrung mit überlegener Leistung, erweiterten Suchfunktionen und intelligenter Stream-Auswahl verbessert. Es bietet benutzerdefinierte Titelunterstützung, Multi-Plattform-Kompatibilität und Self-Hosting-Optionen. Trete unserer Community auf <a href="https://discord.gg/Ma4SnagqwE">Discord</a> bei oder trage auf <a href="https://github.com/Varming73/easynews-pp">GitHub</a> bei.',
       supportDevelopment: 'Spenden',
     },
     form: {
@@ -355,7 +355,7 @@ export const translations: Translations = {
       configCopied: '¡Copiado!',
       version: 'Versión',
       description:
-        'Easynews++ es un complemento de código abierto que mejora la experiencia de Easynews con un rendimiento superior, capacidades de búsqueda avanzadas y selección inteligente de transmisiones. Cuenta con soporte de títulos personalizados, compatibilidad multiplataforma y opciones de alojamiento propio. Únase a nuestra comunidad en <a href="https://discord.gg/Ma4SnagqwE">Discord</a> o contribuya en <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ es un complemento de código abierto que mejora la experiencia de Easynews con un rendimiento superior, capacidades de búsqueda avanzadas y selección inteligente de transmisiones. Cuenta con soporte de títulos personalizados, compatibilidad multiplataforma y opciones de alojamiento propio. Únase a nuestra comunidad en <a href="https://discord.gg/Ma4SnagqwE">Discord</a> o contribuya en <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Soporte',
     },
     form: {
@@ -415,7 +415,7 @@ export const translations: Translations = {
       configCopied: 'Copié !',
       version: 'Version',
       description:
-        "Easynews++ est un addon open-source qui améliore l'expérience Easynews avec des performances supérieures, des capacités de recherche avancées et une sélection intelligente des flux. Il propose le support de titres personnalisés, la compatibilité multi-plateformes et des options d'auto-hébergement. Rejoignez notre communauté sur <a href='https://discord.gg/Ma4SnagqwE'>Discord</a> ou contribuez sur <a href='https://github.com/panteLx/easynews-plus-plus'>GitHub</a>.",
+        "Easynews++ est un addon open-source qui améliore l'expérience Easynews avec des performances supérieures, des capacités de recherche avancées et une sélection intelligente des flux. Il propose le support de titres personnalisés, la compatibilité multi-plateformes et des options d'auto-hébergement. Rejoignez notre communauté sur <a href='https://discord.gg/Ma4SnagqwE'>Discord</a> ou contribuez sur <a href='https://github.com/Varming73/easynews-pp'>GitHub</a>.",
       supportDevelopment: 'Soutenir',
     },
     form: {
@@ -475,7 +475,7 @@ export const translations: Translations = {
       configCopied: 'Copiato!',
       version: 'Versione',
       description:
-        "Easynews++ è un addon open-source che migliora l'esperienza di Easynews con prestazioni superiori, funzionalità di ricerca avanzate e selezione intelligente dei flussi. Include supporto per titoli personalizzati, compatibilità multi-piattaforma e opzioni di self-hosting. Unisciti alla nostra comunità su <a href='https://discord.gg/Ma4SnagqwE'>Discord</a> o contribuisci su <a href='https://github.com/panteLx/easynews-plus-plus'>GitHub</a>.",
+        "Easynews++ è un addon open-source che migliora l'esperienza di Easynews con prestazioni superiori, funzionalità di ricerca avanzate e selezione intelligente dei flussi. Include supporto per titoli personalizzati, compatibilità multi-piattaforma e opzioni di self-hosting. Unisciti alla nostra comunità su <a href='https://discord.gg/Ma4SnagqwE'>Discord</a> o contribuisci su <a href='https://github.com/Varming73/easynews-pp'>GitHub</a>.",
       supportDevelopment: 'Soporte',
     },
     form: {
@@ -535,7 +535,7 @@ export const translations: Translations = {
       configCopied: 'コピーしました！',
       version: 'バージョン',
       description:
-        'Easynews++は、優れたパフォーマンス、高度な検索機能、インテリジェントなストリーム選択でEasynewsの体験を向上させるオープンソースアドオンです。カスタムタイトルのサポート、マルチプラットフォームの互換性、セルフホスティングオプションを備えています。<a href="https://discord.gg/Ma4SnagqwE">Discord</a>のコミュニティに参加するか、<a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>で貢献してください。',
+        'Easynews++は、優れたパフォーマンス、高度な検索機能、インテリジェントなストリーム選択でEasynewsの体験を向上させるオープンソースアドオンです。カスタムタイトルのサポート、マルチプラットフォームの互換性、セルフホスティングオプションを備えています。<a href="https://discord.gg/Ma4SnagqwE">Discord</a>のコミュニティに参加するか、<a href="https://github.com/Varming73/easynews-pp">GitHub</a>で貢献してください。',
       supportDevelopment: 'サポート',
     },
     form: {
@@ -595,7 +595,7 @@ export const translations: Translations = {
       configCopied: 'Copiado!',
       version: 'Versão',
       description:
-        'Easynews++ é um addon de código aberto que melhora a experiência do Easynews com desempenho superior, recursos de pesquisa avançados e seleção inteligente de streams. Ele oferece suporte a títulos personalizados, compatibilidade multiplataforma e opções de hospedagem própria. Junte-se à nossa comunidade no <a href="https://discord.gg/Ma4SnagqwE">Discord</a> ou contribua no <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ é um addon de código aberto que melhora a experiência do Easynews com desempenho superior, recursos de pesquisa avançados e seleção inteligente de streams. Ele oferece suporte a títulos personalizados, compatibilidade multiplataforma e opções de hospedagem própria. Junte-se à nossa comunidade no <a href="https://discord.gg/Ma4SnagqwE">Discord</a> ou contribua no <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Suporte',
     },
     form: {
@@ -655,7 +655,7 @@ export const translations: Translations = {
       configCopied: 'Скопировано!',
       version: 'Версия',
       description:
-        'Easynews++ — это дополнение с открытым исходным кодом, которое улучшает работу с Easynews благодаря превосходной производительности, расширенным возможностям поиска и интеллектуальному выбору потоков. Оно имеет поддержку пользовательских заголовков, совместимость с несколькими платформами и возможности самостоятельного размещения. Присоединяйтесь к нашему сообществу в <a href="https://discord.gg/Ma4SnagqwE">Discord</a> или вносите вклад на <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ — это дополнение с открытым исходным кодом, которое улучшает работу с Easynews благодаря превосходной производительности, расширенным возможностям поиска и интеллектуальному выбору потоков. Оно имеет поддержку пользовательских заголовков, совместимость с несколькими платформами и возможности самостоятельного размещения. Присоединяйтесь к нашему сообществу в <a href="https://discord.gg/Ma4SnagqwE">Discord</a> или вносите вклад на <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Поддержка',
     },
     form: {
@@ -715,7 +715,7 @@ export const translations: Translations = {
       configCopied: '복사됨!',
       version: '버전',
       description:
-        'Easynews++는 뛰어난 성능, 고급 검색 기능 및 지능형 스트림 선택으로 Easynews 경험을 향상시키는 오픈 소스 애드온입니다. 사용자 정의 제목 지원, 다중 플랫폼 호환성 및 자체 호스팅 옵션을 제공합니다. <a href="https://discord.gg/Ma4SnagqwE">Discord</a>에서 커뮤니티에 참여하거나 <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>에서 기여하세요.',
+        'Easynews++는 뛰어난 성능, 고급 검색 기능 및 지능형 스트림 선택으로 Easynews 경험을 향상시키는 오픈 소스 애드온입니다. 사용자 정의 제목 지원, 다중 플랫폼 호환성 및 자체 호스팅 옵션을 제공합니다. <a href="https://discord.gg/Ma4SnagqwE">Discord</a>에서 커뮤니티에 참여하거나 <a href="https://github.com/Varming73/easynews-pp">GitHub</a>에서 기여하세요.',
       supportDevelopment: '지원',
     },
     form: {
@@ -775,7 +775,7 @@ export const translations: Translations = {
       configCopied: '已复制!',
       version: '版本',
       description:
-        'Easynews++是一个开源插件，通过卓越的性能、高级搜索功能和智能流选择增强Easynews体验。它具有自定义标题支持、多平台兼容性和自托管选项。加入我们的<a href="https://discord.gg/Ma4SnagqwE">Discord</a>社区或在<a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>上贡献。',
+        'Easynews++是一个开源插件，通过卓越的性能、高级搜索功能和智能流选择增强Easynews体验。它具有自定义标题支持、多平台兼容性和自托管选项。加入我们的<a href="https://discord.gg/Ma4SnagqwE">Discord</a>社区或在<a href="https://github.com/Varming73/easynews-pp">GitHub</a>上贡献。',
       supportDevelopment: '支持',
     },
     form: {
@@ -831,7 +831,7 @@ export const translations: Translations = {
       configCopied: 'Gekopieerd!',
       version: 'Versie',
       description:
-        'Easynews++ is een open-source addon dat de ervaring van Easynews verbetert met een betere prestaties, geavanceerde zoekmogelijkheden en intelligente streamselectie. Het biedt ondersteuning voor aangepaste titels, multi-platformcompatibiliteit en zelfhostingopties. Doe mee met onze gemeenschap op <a href="https://discord.gg/Ma4SnagqwE">Discord</a> of help ons op <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ is een open-source addon dat de ervaring van Easynews verbetert met een betere prestaties, geavanceerde zoekmogelijkheden en intelligente streamselectie. Het biedt ondersteuning voor aangepaste titels, multi-platformcompatibiliteit en zelfhostingopties. Doe mee met onze gemeenschap op <a href="https://discord.gg/Ma4SnagqwE">Discord</a> of help ons op <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Ondersteuning',
     },
     form: {
@@ -891,7 +891,7 @@ export const translations: Translations = {
       configCopied: 'Copiat!',
       version: 'Versiune',
       description:
-        'Easynews++ este un addon open-source care îmbunătățește experiența Easynews cu performanțe superioare, funcții avansate de căutare și selecție inteligentă de fluxuri. Acesta oferă suport pentru titluri personalizate, compatibilitate multiplatform și opțiuni de auto-hosting. Faceți parte din comunitatea noastră pe <a href="https://discord.gg/Ma4SnagqwE">Discord</a> sau contribuiți la <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ este un addon open-source care îmbunătățește experiența Easynews cu performanțe superioare, funcții avansate de căutare și selecție inteligentă de fluxuri. Acesta oferă suport pentru titluri personalizate, compatibilitate multiplatform și opțiuni de auto-hosting. Faceți parte din comunitatea noastră pe <a href="https://discord.gg/Ma4SnagqwE">Discord</a> sau contribuiți la <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Suport',
     },
     form: {
@@ -951,7 +951,7 @@ export const translations: Translations = {
       configCopied: 'Конфигурацията е копирана!',
       version: 'Версия',
       description:
-        'Easynews++ е добавка с отворен код, която подобрява работата с Easynews с по-добра производителност, разширени възможности за търсене и интелигентен избор на поток. Той включва поддръжка на персонализирани заглавия, мултиплатформена съвместимост и опции за самостоятелно хостване. Присъединете се към нашата общност в <a href="https://discord.gg/Ma4SnagqwE">Discord</a> или допринасяйте в <a href="https://github.com/panteLx/easynews-plus-plus">GitHub</a>.',
+        'Easynews++ е добавка с отворен код, която подобрява работата с Easynews с по-добра производителност, разширени възможности за търсене и интелигентен избор на поток. Той включва поддръжка на персонализирани заглавия, мултиплатформена съвместимост и опции за самостоятелно хостване. Присъединете се към нашата общност в <a href="https://discord.gg/Ma4SnagqwE">Discord</a> или допринасяйте в <a href="https://github.com/Varming73/easynews-pp">GitHub</a>.',
       supportDevelopment: 'Поддръжка',
     },
     form: {

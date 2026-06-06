@@ -23,7 +23,7 @@
   ],
   "author": "panteLx",
   "license": "MIT",
-  "description": "Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Join our community on Discord (discord.gg/Ma4SnagqwE) or contribute on GitHub (github.com/panteLx/easynews-plus-plus)",
+  "description": "Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Join our community on Discord (discord.gg/Ma4SnagqwE) or contribute on GitHub (github.com/Varming73/easynews-pp)",
   "workspaces": [
     "packages/*"
   ],
@@ -44,11 +44,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/panteLx/easynews-plus-plus.git"
+    "url": "git+https://github.com/Varming73/easynews-pp.git"
   },
-  "homepage": "https://github.com/panteLx/easynews-plus-plus",
+  "homepage": "https://github.com/Varming73/easynews-pp",
   "bugs": {
-    "url": "https://github.com/panteLx/easynews-plus-plus/issues"
+    "url": "https://github.com/Varming73/easynews-pp/issues"
   },
   "files": [
     "dist/**/*",

@@ -97,5 +97,5 @@ body:
             I have filled out all of the requested information adequately.
           required: true
         - label: >-
-            I am using the [latest version](https://github.com/pantelx/easynews-plus-plus/releases/latest).
+            I am using the [latest version](https://github.com/Varming73/easynews-pp/releases/latest).
           required: true

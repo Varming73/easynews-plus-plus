@@ -3,8 +3,8 @@
 <div align="center">
 
 ![Easynews++ Logo](https://img.shields.io/badge/Easynews%2B%2B-Addon-blue?style=for-the-badge)
-![Version](https://img.shields.io/github/v/release/pantelx/easynews-plus-plus?style=for-the-badge&label=Version)
-![Checks](https://img.shields.io/github/check-runs/pantelx/easynews-plus-plus/main?style=for-the-badge&label=Checks)
+![Version](https://img.shields.io/github/v/release/Varming73/easynews-pp?style=for-the-badge&label=Version)
+![Checks](https://img.shields.io/github/check-runs/Varming73/easynews-pp/main?style=for-the-badge&label=Checks)
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Ma4SnagqwE)
 [![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Me%20A%20Coffee-orange?style=for-the-badge)](https://buymeacoffee.com/pantel)
@@ -151,7 +151,7 @@ Deploy using Docker Compose for a containerized solution:
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/pantelx/easynews-plus-plus.git && cd easynews-plus-plus
+$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
 # Copy the .env.example file to .env
 $ cp .env.example .env
 # Start the container
@@ -163,7 +163,7 @@ The docker-compose.yml file is configured to use the pre-built image by default,
 Verify the installation by visiting `http://localhost:1337/` in your browser. To customize the port or other settings, edit the .env file before starting the container.
 
 > [!NOTE]  
-> The Docker image is automatically built and published to GitHub Container Registry (ghcr.io) for each push to the main branch and for each new version tag. You can find all available tags on the [GitHub Packages page](https://github.com/pantelx/easynews-plus-plus/pkgs/container/easynews-plus-plus).
+> The Docker image is automatically built and published to GitHub Container Registry (ghcr.io) for each push to the main branch and for each new version tag. You can find all available tags on the [GitHub Packages page](https://github.com/Varming73/easynews-pp/pkgs/container/easynews-plus-plus).
 
 ### 📦 Source Installation
 
@@ -178,7 +178,7 @@ $ node -v
 # Verify NPM version
 $ npm -v
 # Clone and install
-$ git clone https://github.com/pantelx/easynews-plus-plus.git && cd easynews-plus-plus
+$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
 $ npm i
 # Copy the .env.example file to .env
 $ cp .env.example .env
@@ -196,7 +196,7 @@ Deploy to Cloudflare's global edge network for optimal performance:
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/pantelx/easynews-plus-plus.git && cd easynews-plus-plus
+$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
 # Install dependencies
 $ npm i
 # Copy the .env.example file to .env
@@ -215,7 +215,7 @@ $ npm run preview:cf
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/pantelx/easynews-plus-plus.git && cd easynews-plus-plus
+$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
 # Install dependencies
 $ npm i
 # Copy the .env.example file to .env
@@ -396,7 +396,7 @@ For maximum language prioritization effect, use the "Language First" sorting opt
 
 This makes it easier to find content in languages you understand without removing other options.
 
-If you need additional languages added to the public instance, please [create a new issue](https://github.com/pantelx/easynews-plus-plus/issues/new) with your request.
+If you need additional languages added to the public instance, please [create a new issue](https://github.com/Varming73/easynews-pp/issues/new) with your request.
 
 ### How is platform compatibility ensured?
 
@@ -416,7 +416,7 @@ Your support helps maintain and improve this project! Consider:
 - [Buying me a coffee](https://buymeacoffee.com/pantel)
 - [Becoming a GitHub Sponsor](https://github.com/sponsors/pantelx)
 - Joining our [Discord community](https://discord.gg/Ma4SnagqwE) for support and updates
-- Contributing on [GitHub](https://github.com/panteLx/easynews-plus-plus)
+- Contributing on [GitHub](https://github.com/Varming73/easynews-pp)
 
 ## 🙏 Credits
 
