@@ -379,118 +379,76 @@ builder.defineStreamHandler(
         return uniqueHashes.size;
       };
 
-      // First try without year for each title variant
+      // Build the ordered list of search queries: every title variant WITHOUT
+      // the year first, then (if the year is known) every variant WITH the year.
+      // This is exactly the order the previous sequential implementation used, so
+      // that the downstream dedup-by-hash (first-seen wins) and the
+      // TOTAL_MAX_RESULTS cap select the same results regardless of which network
+      // request happens to finish first.
+      const searchQueries: string[] = [];
       for (const titleVariant of allTitles) {
-        // Skip empty titles
         if (!titleVariant.trim()) continue;
+        searchQueries.push(
+          buildSearchQuery(type, { ...meta, name: titleVariant, year: undefined })
+        );
+      }
+      if (meta.year !== undefined) {
+        for (const titleVariant of allTitles) {
+          if (!titleVariant.trim()) continue;
+          searchQueries.push(
+            buildSearchQuery(type, { ...meta, name: titleVariant, year: meta.year })
+          );
+        }
+      }
 
-        // Stop searching if we already have enough results
+      logger.debug(
+        `Running ${searchQueries.length} searches for ${allTitles.length} title variants`
+      );
+
+      // Run the searches with BOUNDED concurrency instead of one-at-a-time — the
+      // sequential fan-out was the dominant latency cost on a cache miss. Results
+      // are merged back in QUERY ORDER (not completion order) so selection stays
+      // deterministic, and the early-exit threshold is re-checked between batches
+      // (so we still stop once we have enough; may overshoot by up to one batch).
+      const SEARCH_CONCURRENCY = parseIntEnv(process.env.SEARCH_CONCURRENCY, 5);
+
+      for (let i = 0; i < searchQueries.length; i += SEARCH_CONCURRENCY) {
         if (totalFoundResults >= TOTAL_MAX_RESULTS) {
           logger.debug(
-            `Already found ${totalFoundResults} unique results, skipping additional title searches`
+            `Already found ${totalFoundResults} unique results, skipping remaining searches`
           );
           break;
         }
 
-        const titleMeta = { ...meta, name: titleVariant, year: undefined };
-        const query = buildSearchQuery(type, titleMeta);
-        logger.debug(`Searching without year for: "${query}"`);
+        const batch = searchQueries.slice(i, i + SEARCH_CONCURRENCY);
+        const settled = await Promise.allSettled(
+          batch.map(query => api.search({ ...sortOptions, query }))
+        );
 
-        try {
-          const res = await api.search({
-            ...sortOptions,
-            query,
-          });
+        // Merge in batch order to keep dedup/cap selection deterministic.
+        for (let j = 0; j < settled.length; j++) {
+          const outcome = settled[j];
+          const query = batch[j];
 
+          if (outcome.status === 'rejected') {
+            // A single auth failure means every search will fail — surface it.
+            if (isAuthError(outcome.reason)) {
+              return authErrorStream(config.preferredLanguage || '');
+            }
+            logger.error(`Error searching for "${query}":`, outcome.reason);
+            continue;
+          }
+
+          const res = outcome.value;
           const resultCount = res?.data?.length || 0;
-          logger.debug(`Found ${resultCount} results for "${query}" without year`);
-
+          logger.debug(`Found ${resultCount} results for "${query}"`);
           if (resultCount > 0) {
             allSearchResults.push({ query, result: res });
-            totalFoundResults = countTotalUniqueResults();
-            logger.debug(`Total unique results so far: ${totalFoundResults}`);
-
-            // Log a few examples of the results
-            const examples = res.data.slice(0, 2);
-            for (const file of examples) {
-              const title = getPostTitle(file);
-              logger.debug(`Example result: "${title}" (${file['4'] || 'unknown size'})`);
-            }
-          }
-        } catch (error) {
-          logger.error(`Error searching for "${query}":`, error);
-
-          // Check if it's an authentication error
-          if (isAuthError(error)) return authErrorStream(config.preferredLanguage || '');
-
-          // Continue with other titles even if one fails
-        }
-      }
-
-      // If meta.year is defined, also search with year included (regardless of whether we found results without year)
-      if (meta.year !== undefined) {
-        // Skip year search if we already have enough results
-        if (totalFoundResults >= TOTAL_MAX_RESULTS) {
-          logger.debug(
-            `Already found ${totalFoundResults} unique results, skipping year-based searches`
-          );
-        } else {
-          // If we already found results without year, log that we're still searching with year
-          if (allSearchResults.length > 0) {
-            logger.debug(
-              `Found ${totalFoundResults} unique results without year, also trying with year: ${meta.year}`
-            );
-          } else {
-            logger.debug(`No results found without year, trying with year: ${meta.year}`);
-          }
-
-          for (const titleVariant of allTitles) {
-            // Skip empty titles
-            if (!titleVariant.trim()) continue;
-
-            // Stop searching if we already have enough results
-            if (totalFoundResults >= TOTAL_MAX_RESULTS) {
-              logger.debug(
-                `Already found ${totalFoundResults} unique results, skipping additional title searches with year`
-              );
-              break;
-            }
-
-            const titleMeta = { ...meta, name: titleVariant, year: meta.year };
-            const query = buildSearchQuery(type, titleMeta);
-            logger.debug(`Searching with year for: "${query}"`);
-
-            try {
-              const res = await api.search({
-                ...sortOptions,
-                query,
-              });
-
-              const resultCount = res?.data?.length || 0;
-              logger.debug(`Found ${resultCount} results for "${query}" with year`);
-
-              if (resultCount > 0) {
-                allSearchResults.push({ query, result: res });
-                totalFoundResults = countTotalUniqueResults();
-                logger.debug(`Total unique results so far: ${totalFoundResults}`);
-
-                // Log a few examples of the results
-                const examples = res.data.slice(0, 2);
-                for (const file of examples) {
-                  const title = getPostTitle(file);
-                  logger.debug(`Example result: "${title}" (${file['4'] || 'unknown size'})`);
-                }
-              }
-            } catch (error) {
-              logger.error(`Error searching for "${query}":`, error);
-
-              // Check if it's an authentication error
-              if (isAuthError(error)) return authErrorStream(config.preferredLanguage || '');
-
-              // Continue with other titles even if one fails
-            }
           }
         }
+
+        totalFoundResults = countTotalUniqueResults();
+        logger.debug(`Total unique results so far: ${totalFoundResults}`);
       }
 
       if (allSearchResults.length === 0) {

@@ -61,3 +61,27 @@ and are never printed.
 - Upstream latency varies with Easynews load / time of day; treat absolute numbers
   as a ballpark and always compare COLD-vs-COLD on the same run when evaluating a
   change.
+
+## Phase 3 result — parallel search fan-out
+
+Honest caveat first: the real-network harness above is **too noisy to quantify**
+the parallelization win on its own. Post-change `baseline-latency.mjs` runs ranged
+from ~1300 ms to ~2460 ms COLD on the same code (NO-RESULT even came out _slower_
+than COLD in one run) — upstream Easynews latency dominates, and pre/post
+distributions overlap. So no clean "X% faster" claim is made from it.
+
+To measure the structural win without network noise, `scripts/bench-fanout.mjs`
+stubs `global.fetch` with a fixed per-call delay and counts search calls. With a
+600 ms per-search delay and a title that issues 2 searches (no-year + year):
+
+| Mode                                       | Measured | Sequential projection |
+| ------------------------------------------ | -------- | --------------------- |
+| Parallel (`SEARCH_CONCURRENCY=5`, default) | ~606 ms  | 1200 ms               |
+| Forced sequential (`SEARCH_CONCURRENCY=1`) | ~1214 ms | 1200 ms               |
+
+The `concurrency=1` row reproduces the old behavior (= 2 × 600 ms) and the default
+row shows the searches running concurrently (≈ 1 × 600 ms) — a clean 2× at this
+call count. The win scales with the number of title variants: K searches take
+⌈K/concurrency⌉ batches instead of K sequential round-trips (e.g. 6 variants →
+~3× at concurrency 5). Real-world wall-clock gains will be somewhere below these
+idealized figures because actual per-call latency varies.
