@@ -5,8 +5,9 @@ import {
   customTemplate,
   parseResolvePayload,
   ResolveError,
+  getUILanguage,
+  sanitizeUiLanguage,
 } from 'easynews-plus-plus-addon';
-import { getUILanguage, sanitizeUiLanguage } from 'easynews-plus-plus-addon/dist/i18n/index.js';
 import { createLogger } from 'easynews-plus-plus-shared';
 
 // Create a logger with CF prefix for better context and set Cloudflare environment
