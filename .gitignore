@@ -36,3 +36,6 @@ reddit/
 # Cloudflare Worker
 .wrangler
 wrangler.toml
+
+# Local agent/tooling state
+.memsearch/
