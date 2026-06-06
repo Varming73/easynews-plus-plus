@@ -104,6 +104,27 @@ export const ISO_TO_LANGUAGE: Record<string, Language> = {
   '': 'en',
 };
 
+// Default UI language code (ISO 639-2) used by the configuration manifest.
+export const DEFAULT_UI_LANGUAGE = 'eng';
+
+/**
+ * Validate a UI language code coming from untrusted input (e.g. the `?lang=`
+ * query parameter on the /configure page). Returns the code unchanged only if
+ * it is one of the known UI languages; otherwise falls back to the default.
+ *
+ * This is a security boundary: the returned value is written into the manifest
+ * and later interpolated into an inline <script> on the configuration page, so
+ * it MUST be constrained to a fixed allow-list to prevent reflected XSS.
+ * Uses hasOwnProperty (not `in`) so inherited keys like `__proto__`/`toString`
+ * are not treated as valid codes.
+ */
+export function sanitizeUiLanguage(input?: string): string {
+  if (input && Object.prototype.hasOwnProperty.call(ISO_TO_LANGUAGE, input) && input !== '') {
+    return input;
+  }
+  return DEFAULT_UI_LANGUAGE;
+}
+
 // Additional ISO 639-2 to ISO 639-1 mappings for languages not in our UI
 export const ADDITIONAL_LANGUAGE_CODES: Record<string, string> = {
   ara: 'ar', // Arabic

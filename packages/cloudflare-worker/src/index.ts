@@ -1,7 +1,12 @@
 import { Hono } from 'hono';
 import { createRouter } from '@stremio-addon/sdk';
-import { addonInterface, customTemplate } from 'easynews-plus-plus-addon';
-import { getUILanguage } from 'easynews-plus-plus-addon/dist/i18n/index.js';
+import {
+  addonInterface,
+  customTemplate,
+  parseResolvePayload,
+  ResolveError,
+} from 'easynews-plus-plus-addon';
+import { getUILanguage, sanitizeUiLanguage } from 'easynews-plus-plus-addon/dist/i18n/index.js';
 import { createLogger } from 'easynews-plus-plus-shared';
 
 // Create a logger with CF prefix for better context and set Cloudflare environment
@@ -24,16 +29,20 @@ logger.debug('Initialized Hono app');
 
 // Helper function to create a deep clone of the manifest with a specified language
 function createManifestWithLanguage(lang: string) {
-  logger.debug(`Creating manifest clone for language: ${lang}`);
+  // SECURITY: `lang` is attacker-controllable (?lang= query param). Constrain it
+  // to the known UI-language allow-list before it is stored in the manifest and
+  // later rendered into the configuration page's inline script (reflected XSS).
+  const safeLang = sanitizeUiLanguage(lang);
+  logger.debug(`Creating manifest clone for language: ${safeLang}`);
   const manifest = structuredClone(addonInterface.manifest);
 
   // Find and update the uiLanguage field
   if (manifest.config) {
     const uiLangFieldIndex = manifest.config.findIndex((field: any) => field.key === 'uiLanguage');
     if (uiLangFieldIndex >= 0 && lang) {
-      logger.debug(`Setting language in manifest to: ${lang}`);
-      manifest.config[uiLangFieldIndex].default = lang;
-      logger.debug(`Updated manifest language setting to: ${lang}`);
+      logger.debug(`Setting language in manifest to: ${safeLang}`);
+      manifest.config[uiLangFieldIndex].default = safeLang;
+      logger.debug(`Updated manifest language setting to: ${safeLang}`);
     } else {
       logger.debug(`No uiLanguage field found in manifest config or empty language`);
     }
@@ -52,38 +61,27 @@ app.get('/resolve/:payload/:filename', async c => {
     return c.text('Missing url parameter', 400);
   }
 
-  let targetUrl: string;
+  // Decode + validate the payload and strip credentials into a Basic auth header
+  // (shared with the Express server, see packages/addon/src/resolve.ts).
+  let cleanUrl: string;
+  let authHeader: string;
   try {
-    // Decode the Base64URL payload back into the Easynews URL with credentials as query-params
-    targetUrl = Buffer.from(encodedUrl, 'base64url').toString('utf-8');
-  } catch {
-    return c.text('Invalid url encoding', 400);
+    ({ cleanUrl, authHeader } = parseResolvePayload(encodedUrl));
+  } catch (err) {
+    if (err instanceof ResolveError) {
+      return c.text(err.message, err.status as 400);
+    }
+    return c.text('Invalid request', 400);
   }
 
-  // Only accept hosts under easynews.com
-  const parsed = new URL(targetUrl);
-  const host = parsed.hostname.toLowerCase();
-  const allowedDomain = /^([a-z0-9-]+\.)*easynews\.com$/i;
-  if (!allowedDomain.test(host)) {
-    return c.text('Domain not allowed', 403);
-  }
-
-  // Extract and remove credentials
-  const username = parsed.searchParams.get('u') || '';
-  const password = parsed.searchParams.get('p') || '';
-  parsed.searchParams.delete('u');
-  parsed.searchParams.delete('p');
-  const cleanUrl = parsed.toString();
-
   try {
-    // Create authorization header
-    const auth = 'Basic ' + btoa(`${username}:${password}`);
-
-    // Single GET with Range header to follow redirects and only download 1 byte
+    // Single GET with Range header to follow redirects and only download 1 byte.
+    // redirect:'manual' means the Authorization header is sent only to the
+    // validated easynews host and is never forwarded to the redirect target.
     const response = await fetch(cleanUrl, {
       method: 'GET',
       headers: {
-        Authorization: auth,
+        Authorization: authHeader,
         Range: 'bytes=0-0',
       },
       redirect: 'manual',
@@ -108,6 +106,11 @@ app.get('/configure', c => {
   c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   c.header('Pragma', 'no-cache');
   c.header('Expires', '0');
+  // This page hosts the credential-entry form; prevent framing (clickjacking)
+  // and MIME sniffing.
+  c.header('X-Frame-Options', 'DENY');
+  c.header('Content-Security-Policy', "frame-ancestors 'none'");
+  c.header('X-Content-Type-Options', 'nosniff');
 
   const lang = c.req.query('lang') || '';
   const uiLanguage = getUILanguage(lang);
@@ -142,9 +145,10 @@ if ((addonInterface.manifest.config || []).length > 0) {
   app.get('/', c => {
     logger.debug(`Received root request from: ${c.req.header('user-agent')}`);
 
-    // Pass any language parameter to the configure route
+    // Pass any language parameter to the configure route (URL-encoded so it
+    // cannot inject extra query parameters into the redirect target).
     const lang = c.req.query('lang') || '';
-    const redirectUrl = lang ? `/configure?lang=${lang}` : '/configure';
+    const redirectUrl = lang ? `/configure?lang=${encodeURIComponent(lang)}` : '/configure';
     logger.debug(`Cloudflare worker: Redirecting to ${redirectUrl}`);
     return c.redirect(redirectUrl);
   });

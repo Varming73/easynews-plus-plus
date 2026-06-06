@@ -286,6 +286,20 @@ You can configure the addon server using environment variables:
    - `CHATWOOT_ENABLED`: Enable or disable Chatwoot integration
    - `CHATWOOT_BASE_URL`: Base URL for the Chatwoot installation
    - `CHATWOOT_WEBSITE_TOKEN`: Website token for Chatwoot authentication
+7. **Streaming / Security**:
+   - `ADDON_BASE_URL`: Public origin of this addon (e.g. `https://your-addon.example.com`).
+     Stream URLs are routed through the addon's `/resolve` proxy so your Easynews
+     credentials are never embedded in the URL handed to the player. Installs created
+     via the configuration page already include their own base URL; set this only to
+     support older installs whose saved configuration predates it.
+   - `ALLOW_INSECURE_CREDENTIAL_URLS`: When `true`, restores the legacy behavior of
+     embedding your Easynews username/password directly in stream URLs. **Insecure —
+     leave unset/`false`** unless you understand the risk.
+
+> **Upgrade note:** As of this version the addon no longer embeds Easynews credentials
+> directly in stream URLs by default. If an existing install shows a "reconfigure"
+> message instead of streams, either re-install it from the configuration page or set
+> `ADDON_BASE_URL` on the server.
 
 The easiest way to configure these settings is by copying the `.env.example` file to `.env` in the project root.
 

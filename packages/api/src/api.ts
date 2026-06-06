@@ -132,7 +132,8 @@ export class EasynewsAPI {
       });
 
       if (res.status === 401) {
-        logger.debug(`Authentication failed for user: ${this.username}`);
+        // Do not log the username/credentials.
+        logger.debug('Authentication failed (401) for the configured Easynews account');
         throw new Error('Authentication failed: Invalid username or password');
       }
 

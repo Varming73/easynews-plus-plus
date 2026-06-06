@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   matchesTitle,
   sanitizeTitle,
@@ -352,39 +352,53 @@ describe('capitalizeFirstLetter', () => {
 });
 
 describe('createStreamUrl', () => {
-  it('creates a stream URL with authentication', () => {
-    const response = {
-      downURL: 'https://example.com/down',
-      dlFarm: 'farm1',
-      dlPort: 'port1',
-    } as unknown as any;
+  // The legacy credential-in-URL format is now disabled by default and only
+  // emitted when ALLOW_INSECURE_CREDENTIAL_URLS is explicitly set. These tests
+  // pin that opt-in behavior.
+  describe('legacy credential URL (insecure, opt-in only)', () => {
+    beforeEach(() => {
+      process.env.ALLOW_INSECURE_CREDENTIAL_URLS = 'true';
+    });
+    afterEach(() => {
+      delete process.env.ALLOW_INSECURE_CREDENTIAL_URLS;
+    });
 
-    const url = createStreamUrl(response, 'testuser', 'testpass', '');
-    expect(url).toBe('https://testuser:testpass@example.com/down/farm1/port1/');
-  });
+    it('creates a stream URL with authentication', () => {
+      const response = {
+        downURL: 'https://example.com/down',
+        dlFarm: 'farm1',
+        dlPort: 'port1',
+      } as unknown as any;
 
-  it('handles different URL formats', () => {
-    const response = {
-      downURL: 'https://cdn.example.com/download',
-      dlFarm: 'farm2',
-      dlPort: 'port2',
-    } as unknown as any;
+      const url = createStreamUrl(response, 'testuser', 'testpass', '');
+      expect(url).toBe('https://testuser:testpass@example.com/down/farm1/port1/');
+    });
 
-    const url = createStreamUrl(response, 'user@domain.com', 'complex@pass!123', '');
-    expect(url).toBe(
-      'https://user@domain.com:complex@pass!123@cdn.example.com/download/farm2/port2/'
-    );
-  });
+    it('handles different URL formats', () => {
+      const response = {
+        downURL: 'https://cdn.example.com/download',
+        dlFarm: 'farm2',
+        dlPort: 'port2',
+      } as unknown as any;
 
-  it('includes the file path parameter in the URL', () => {
-    const response = {
-      downURL: 'https://example.com/down',
-      dlFarm: 'farm1',
-      dlPort: 'port1',
-    } as unknown as any;
+      const url = createStreamUrl(response, 'user@domain.com', 'complex@pass!123', '');
+      expect(url).toBe(
+        'https://user@domain.com:complex@pass!123@cdn.example.com/download/farm2/port2/'
+      );
+    });
 
-    const url = createStreamUrl(response, 'testuser', 'testpass', 'abc123.mp4/video.mp4');
-    expect(url).toBe('https://testuser:testpass@example.com/down/farm1/port1/abc123.mp4/video.mp4');
+    it('includes the file path parameter in the URL', () => {
+      const response = {
+        downURL: 'https://example.com/down',
+        dlFarm: 'farm1',
+        dlPort: 'port1',
+      } as unknown as any;
+
+      const url = createStreamUrl(response, 'testuser', 'testpass', 'abc123.mp4/video.mp4');
+      expect(url).toBe(
+        'https://testuser:testpass@example.com/down/farm1/port1/abc123.mp4/video.mp4'
+      );
+    });
   });
 
   it('handles baseUrl parameter for the resolver mode', () => {

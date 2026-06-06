@@ -3,16 +3,22 @@ import landingTemplate from '../src/custom-template';
 import { getTranslations } from '../src/i18n';
 import { Manifest } from '@stremio-addon/sdk';
 
-// Mock the i18n and logger functions
-vi.mock('../src/i18n', () => ({
-  getTranslations: vi.fn(),
-  ISO_TO_LANGUAGE: {
-    eng: 'en',
-    deu: 'de',
-    fra: 'fr',
-    spa: 'es',
-  },
-}));
+// Mock the i18n and logger functions. Keep the real sanitizeUiLanguage /
+// DEFAULT_UI_LANGUAGE so the template's security boundary behaves faithfully.
+vi.mock('../src/i18n', async importActual => {
+  const actual = await importActual<typeof import('../src/i18n')>();
+  return {
+    getTranslations: vi.fn(),
+    ISO_TO_LANGUAGE: {
+      eng: 'en',
+      ger: 'de',
+      fra: 'fr',
+      spa: 'es',
+    },
+    sanitizeUiLanguage: actual.sanitizeUiLanguage,
+    DEFAULT_UI_LANGUAGE: actual.DEFAULT_UI_LANGUAGE,
+  };
+});
 
 vi.mock('../src/utils', () => ({
   logger: {
@@ -53,7 +59,7 @@ describe('Custom Template', () => {
           type: 'select',
           title: 'UI Language',
           default: 'eng',
-          options: { eng: 'English', deu: 'Deutsch' } as unknown as string,
+          options: { eng: 'English', ger: 'Deutsch' } as unknown as string[],
         },
         {
           key: 'strictTitleMatching',
@@ -71,7 +77,7 @@ describe('Custom Template', () => {
             language_first: 'Language First',
             size_first: 'Size First',
             date_first: 'Date First',
-          } as unknown as string,
+          } as unknown as string[],
         },
         {
           key: 'showQualities',
@@ -81,7 +87,7 @@ describe('Custom Template', () => {
           options: {
             '4k,1080p,720p,480p': 'All Qualities',
             '1080p,720p,480p': '1080p and below',
-          } as unknown as string,
+          } as unknown as string[],
         },
         {
           key: 'preferredLanguage',
@@ -91,8 +97,8 @@ describe('Custom Template', () => {
           options: {
             '': 'No preference',
             eng: 'English',
-            deu: 'Deutsch',
-          } as unknown as string,
+            ger: 'Deutsch',
+          } as unknown as string[],
         },
       ],
     };
@@ -162,7 +168,7 @@ describe('Custom Template', () => {
 
     // Mock the getTranslations function
     (getTranslations as any).mockImplementation((language: string) => {
-      if (language === 'deu') return mockGermanTranslations;
+      if (language === 'ger') return mockGermanTranslations;
       return mockEnglishTranslations;
     });
   });
@@ -199,7 +205,7 @@ describe('Custom Template', () => {
     // Change the default language to German and test again
     const uiLanguageField = mockManifest.config?.find(f => f.key === 'uiLanguage');
     if (uiLanguageField) {
-      uiLanguageField.default = 'deu';
+      uiLanguageField.default = 'ger';
     }
     const htmlDeu = landingTemplate(mockManifest);
 
@@ -207,7 +213,7 @@ describe('Custom Template', () => {
     expect(htmlDeu).toContain('Konfiguration');
     expect(htmlDeu).toContain('Strikte Titelübereinstimmung');
     expect(htmlDeu).toContain('Titel genauer abgleichen');
-    expect(getTranslations).toHaveBeenCalledWith('deu');
+    expect(getTranslations).toHaveBeenCalledWith('ger');
   });
 
   it('should translate sorting options correctly', () => {
@@ -220,7 +226,7 @@ describe('Custom Template', () => {
     // Change to German
     const uiLanguageField = mockManifest.config?.find(f => f.key === 'uiLanguage');
     if (uiLanguageField) {
-      uiLanguageField.default = 'deu';
+      uiLanguageField.default = 'ger';
     }
     const htmlDeu = landingTemplate(mockManifest);
 
@@ -238,7 +244,7 @@ describe('Custom Template', () => {
     // Change to German
     const uiLanguageField = mockManifest.config?.find(f => f.key === 'uiLanguage');
     if (uiLanguageField) {
-      uiLanguageField.default = 'deu';
+      uiLanguageField.default = 'ger';
     }
     const htmlDeu = landingTemplate(mockManifest);
 
@@ -371,7 +377,7 @@ describe('Custom Template', () => {
     // Now test with a different language
     const uiLanguageField = mockManifest.config?.find(f => f.key === 'uiLanguage');
     if (uiLanguageField) {
-      uiLanguageField.default = 'deu';
+      uiLanguageField.default = 'ger';
     }
     const htmlDeu = landingTemplate(mockManifest);
 

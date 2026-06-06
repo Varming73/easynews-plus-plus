@@ -18,9 +18,9 @@
     "@stremio-addon/compat": "^1.0.0",
     "@stremio-addon/node-express": "^1.0.0",
     "@stremio-addon/sdk": "^1.0.0",
-    "axios": "^1.5.0",
     "easynews-plus-plus-api": "file:../api",
     "easynews-plus-plus-shared": "file:../shared",
+    "follow-redirects": "^1.16.0",
     "parse-torrent-title": "^1.4.0"
   }
 }

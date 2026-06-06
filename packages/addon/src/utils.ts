@@ -327,7 +327,21 @@ export function matchesTitle(title: string, query: string, strict: boolean) {
 }
 
 /**
- * Create a stream URL that always routes through the addon's /resolve endpoint.
+ * Thrown by {@link createStreamUrl} when no proxy base URL is available and
+ * insecure credential-in-URL mode has not been explicitly enabled. Callers can
+ * catch this to surface a "reconfigure the addon" message to the user.
+ */
+export class MissingBaseUrlError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MissingBaseUrlError';
+  }
+}
+
+/**
+ * Create a stream URL that routes through the addon's /resolve endpoint.
+ * Falls back to ADDON_BASE_URL, and only embeds credentials directly in the URL
+ * when ALLOW_INSECURE_CREDENTIAL_URLS is explicitly enabled.
  */
 export function createStreamUrl(
   { downURL, dlFarm, dlPort }: Pick<EasynewsSearchResponse, 'downURL' | 'dlFarm' | 'dlPort'>,
@@ -337,30 +351,45 @@ export function createStreamUrl(
   baseUrl?: string
 ): string {
   logger.debug(`Creating stream URL with farm: ${dlFarm}, port: ${dlPort}`);
-  if (!baseUrl) {
-    // Legacy mode: credentials in URL
-    const url = `${downURL.replace('https://', `https://${username}:${password}@`)}/${dlFarm}/${dlPort}/${filePath}`;
-    logger.debug(
-      `Stream URL created: ${url.substring(0, url.indexOf('@') + 1)}***/${dlFarm}/${dlPort}/${filePath}`
+
+  // Prefer the per-install baseUrl from config; fall back to a server-wide
+  // ADDON_BASE_URL so installs predating baseUrl injection are still proxied.
+  const effectiveBaseUrl = baseUrl || process.env.ADDON_BASE_URL;
+
+  if (!effectiveBaseUrl) {
+    // No proxy base available. Embedding the user's Easynews credentials directly
+    // in the stream URL (legacy mode) leaks them to the player and any
+    // intermediary, so it is disabled unless explicitly opted into.
+    if (process.env.ALLOW_INSECURE_CREDENTIAL_URLS === 'true') {
+      const url = `${downURL.replace('https://', `https://${username}:${password}@`)}/${dlFarm}/${dlPort}/${filePath}`;
+      // Never log the credential portion of the URL.
+      logger.warn(
+        `Stream URL created in INSECURE legacy mode (credentials embedded in URL): ` +
+          `${dlFarm}/${dlPort}/${filePath}. Set ADDON_BASE_URL to route via the /resolve proxy instead.`
+      );
+      return url;
+    }
+    throw new MissingBaseUrlError(
+      'createStreamUrl: no baseUrl available (config.baseUrl and ADDON_BASE_URL are both unset). ' +
+        'Refusing to embed Easynews credentials in the stream URL. Re-install via the /configure ' +
+        'page, set ADDON_BASE_URL, or set ALLOW_INSECURE_CREDENTIAL_URLS=true to restore the ' +
+        'insecure legacy behavior.'
     );
-    return url;
-  } else {
-    // Resolve mode: route via addon
-    const url = `${downURL}/${dlFarm}/${dlPort}/${filePath}`;
-    // Credentials as query‐parameters
-    const authUrl = `${url}?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}`;
-    // Base64URL-encode authUrl
-    const encodedUrl = Buffer.from(authUrl).toString('base64url');
-    // Extract the filename
-    const fileName = path.basename(filePath);
-    // Strip any trailing slash on baseUrl before concatenating
-    const normalizedBase = baseUrl.replace(/\/+$/, '');
-    // Build /resolve/<base64-payload>/<filename>
-    logger.debug(
-      `Stream URL created: ${normalizedBase}/resolve/<encoded-easynews-url>/${fileName}`
-    );
-    return `${normalizedBase}/resolve/${encodedUrl}/${fileName}`;
   }
+
+  // Resolve mode: route via addon's /resolve endpoint.
+  const url = `${downURL}/${dlFarm}/${dlPort}/${filePath}`;
+  // Credentials as query‐parameters
+  const authUrl = `${url}?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}`;
+  // Base64URL-encode authUrl
+  const encodedUrl = Buffer.from(authUrl).toString('base64url');
+  // Extract the filename
+  const fileName = path.basename(filePath);
+  // Strip any trailing slash on baseUrl before concatenating
+  const normalizedBase = effectiveBaseUrl.replace(/\/+$/, '');
+  // Build /resolve/<base64-payload>/<filename>
+  logger.debug(`Stream URL created: ${normalizedBase}/resolve/<encoded-easynews-url>/${fileName}`);
+  return `${normalizedBase}/resolve/${encodedUrl}/${fileName}`;
 }
 
 export function createStreamPath(file: FileData) {

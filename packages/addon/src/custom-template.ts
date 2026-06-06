@@ -1,13 +1,16 @@
 import type { Manifest } from '@stremio-addon/sdk';
-import { getTranslations, ISO_TO_LANGUAGE } from './i18n/index.js';
+import { getTranslations, ISO_TO_LANGUAGE, sanitizeUiLanguage } from './i18n/index.js';
 import { logger } from './utils.js';
 
 function landingTemplate(manifest: Manifest): string {
   const configurationFields = manifest.config || [];
 
-  // Find UI language field to determine which language to use
+  // Find UI language field to determine which language to use.
+  // SECURITY: the manifest default may originate from the untrusted `?lang=`
+  // query parameter; sanitize before interpolating it into HTML/inline scripts
+  // below to prevent reflected XSS on the configuration page.
   const uiLanguageField = configurationFields.find((field: any) => field.key === 'uiLanguage');
-  const defaultUILanguage = uiLanguageField?.default || 'eng';
+  const defaultUILanguage = sanitizeUiLanguage(uiLanguageField?.default);
 
   // Get translations based on the default UI language
   const translations = getTranslations(defaultUILanguage);

@@ -1,7 +1,6 @@
 import * as fsModule from 'fs';
 import express, { Request, Response, NextFunction } from 'express';
 import type { AddonInterface } from '@stremio-addon/sdk';
-import { Buffer } from 'buffer';
 // follow-redirects is CommonJS; under ESM it must be default-imported, then destructured
 import followRedirects from 'follow-redirects';
 const { http, https } = followRedirects;
@@ -12,6 +11,8 @@ import customTemplate from './custom-template.js';
 import { addonInterface } from './addon.js';
 import { URL } from 'url';
 import { createLogger, getVersion } from 'easynews-plus-plus-shared';
+import { sanitizeUiLanguage } from './i18n/index.js';
+import { parseResolvePayload, ResolveError, stripAuthOnForeignHost } from './resolve.js';
 
 // Create a logger with server prefix and explicitly set the level from environment variable
 export const logger = createLogger({
@@ -29,14 +30,18 @@ type ServerOptions = {
 // Helper function to create a deep clone of the manifest with a specified language
 function createManifestWithLanguage(addonInterface: AddonInterface, lang: string) {
   const manifest = JSON.parse(JSON.stringify(addonInterface.manifest)); // Deep clone
-  logger.debug(`Creating manifest clone for language: ${lang}`);
+  // SECURITY: `lang` is attacker-controllable (?lang= query param). Constrain it
+  // to the known UI-language allow-list before it is stored in the manifest and
+  // later rendered into the configuration page's inline script (reflected XSS).
+  const safeLang = sanitizeUiLanguage(lang);
+  logger.debug(`Creating manifest clone for language: ${safeLang}`);
 
   // Find and update the uiLanguage field
   if (manifest.config) {
     const uiLangFieldIndex = manifest.config.findIndex((field: any) => field.key === 'uiLanguage');
     if (uiLangFieldIndex >= 0 && lang) {
-      logger.debug(`Setting language in manifest to: ${lang}`);
-      manifest.config[uiLangFieldIndex].default = lang;
+      logger.debug(`Setting language in manifest to: ${safeLang}`);
+      manifest.config[uiLangFieldIndex].default = safeLang;
     } else {
       logger.debug(`No language field found in manifest or empty language: ${lang}`);
     }
@@ -82,13 +87,17 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
   app.get('/', (req: Request, res: Response) => {
     logger.debug(`Handling root request with query params: ${JSON.stringify(req.query)}`);
     if (hasConfig) {
-      // Pass any language parameter to the configure route
+      // Pass any language parameter to the configure route (URL-encoded so it
+      // cannot inject extra query parameters into the redirect target).
       const lang = (req.query.lang as string) || '';
-      const redirectUrl = lang ? `/configure?lang=${lang}` : '/configure';
+      const redirectUrl = lang ? `/configure?lang=${encodeURIComponent(lang)}` : '/configure';
       logger.debug(`Redirecting to configuration page: ${redirectUrl}`);
       res.redirect(redirectUrl);
     } else {
       res.setHeader('content-type', 'text/html');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       // Generate the landing HTML with the default language
       logger.debug('Generating landing page HTML with default manifest');
       const landingHTML = customTemplate(addonInterface.manifest);
@@ -98,53 +107,50 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
 
   // Resolve endpoint for stream requests
   app.get('/resolve/:payload/:filename', async (req: Request, res: Response) => {
-    // Expect a Base64URL-encoded URL in the payload
-    const { payload } = req.params;
-    const encodedUrl = payload as string;
-    if (!encodedUrl) {
-      res.status(400).send('Missing url parameter');
-      return;
-    }
-
-    let targetUrl: string;
+    // Decode + validate the payload and strip credentials into a Basic auth
+    // header (shared with the Cloudflare worker, see ./resolve.ts).
+    let cleanUrl: string;
+    let authHeader: string;
     try {
-      // Decode the Base64URL payload back into the Easynews URL with credentials as query-params
-      targetUrl = Buffer.from(encodedUrl, 'base64url').toString('utf-8');
-    } catch {
-      res.status(400).send('Invalid url encoding');
+      ({ cleanUrl, authHeader } = parseResolvePayload(req.params.payload as string));
+    } catch (err) {
+      if (err instanceof ResolveError) {
+        res.status(err.status).send(err.message);
+        return;
+      }
+      res.status(400).send('Invalid request');
       return;
     }
-
-    // Only accept hosts under easynews.com
-    const parsed = new URL(targetUrl);
-    const host = parsed.hostname.toLowerCase();
-    const allowedDomain = /^([a-z0-9-]+\.)*easynews\.com$/i;
-    if (!allowedDomain.test(host)) {
-      res.status(403).send('Domain not allowed');
-      return;
-    }
-
-    // Extract and remove credentials
-    const username = parsed.searchParams.get('u') || '';
-    const password = parsed.searchParams.get('p') || '';
-    parsed.searchParams.delete('u');
-    parsed.searchParams.delete('p');
-    const cleanUrl = parsed.toString();
 
     // Choose the correct client
     const client = cleanUrl.startsWith('https:') ? https : http;
+    const originalHost = new URL(cleanUrl).hostname;
 
-    // GET-only request with Range header to follow redirects and get final URL
+    // follow-redirects supports maxRedirects/beforeRedirect at runtime but its
+    // bundled types omit them; widen the options type locally.
+    const requestOptions: import('http').RequestOptions & {
+      maxRedirects?: number;
+      beforeRedirect?: (options: {
+        hostname?: string;
+        host?: string;
+        headers?: Record<string, string | undefined>;
+      }) => void;
+    } = {
+      method: 'GET',
+      headers: {
+        Authorization: authHeader,
+        Range: 'bytes=0-0', // only fetch first byte
+      },
+      maxRedirects: 5,
+      // Strip the Authorization header on any cross-host hop so the user's
+      // Easynews credentials are never forwarded off easynews.com.
+      beforeRedirect: stripAuthOnForeignHost(originalHost),
+    };
+
+    // GET-only request with Range header to follow redirects and get final URL.
     const request = client.request(
       cleanUrl,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
-          Range: 'bytes=0-0', // only fetch first byte
-        },
-        maxRedirects: 5,
-      },
+      requestOptions,
       // Redirect client to the real CDN URL
       (upstream: IncomingMessage & { responseUrl?: string }) => {
         const finalUrl = upstream.responseUrl || cleanUrl;
@@ -167,6 +173,11 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('content-type', 'text/html');
+      // This page hosts the credential-entry form; prevent framing (clickjacking)
+      // and MIME sniffing.
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
 
       // Get language from query parameter
       const lang = (req.query.lang as string) || '';

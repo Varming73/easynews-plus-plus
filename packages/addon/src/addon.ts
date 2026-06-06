@@ -15,6 +15,7 @@ import {
   matchesTitle,
   getAlternativeTitles,
   isAuthError,
+  MissingBaseUrlError,
 } from './utils.js';
 import { EasynewsAPI, SearchOptions, EasynewsSearchResponse } from 'easynews-plus-plus-api';
 import { publicMetaProvider } from './meta.js';
@@ -51,6 +52,25 @@ function authErrorStream(langCode: string) {
       {
         name: 'Easynews++ Auth Error',
         description: translations[lang].errors.authFailed,
+        url: 'https://example.com/error', // Dummy URL that won't play
+        behaviorHints: {
+          notWebReady: true,
+        },
+      },
+    ],
+  };
+}
+
+// Helper to surface a user-visible "reconfigure" message when no proxy base URL
+// is available (e.g. an old install whose config predates the baseUrl field).
+function configErrorStream() {
+  return {
+    streams: [
+      {
+        name: 'Easynews++ Config Error',
+        description:
+          'This addon needs to be reconfigured. Open its configuration page and re-install, ' +
+          'or set the ADDON_BASE_URL environment variable on the server.',
         url: 'https://example.com/error', // Dummy URL that won't play
         behaviorHints: {
           notWebReady: true,
@@ -156,7 +176,8 @@ builder.defineStreamHandler(
     // users with different settings get different cache results
     const cacheKey = `${id}:v3:user=${username}:strict=${strictTitleMatching === 'on' || strictTitleMatching === 'true'}:lang=${preferredLanguage || ''}:sort=${sortingPreference}:qualities=${showQualities || ''}:maxPerQuality=${maxResultsPerQuality || ''}:maxSize=${maxFileSize || ''}`;
 
-    logger.debug(`Cache key: ${cacheKey}`);
+    // Redact the username when logging the cache key.
+    logger.debug(`Cache key: ${cacheKey.replace(`user=${username}`, 'user=***')}`);
     const cached = getFromCache<{ streams: Stream[] }>(cacheKey);
 
     if (cached) {
@@ -1216,6 +1237,10 @@ builder.defineStreamHandler(
 
       // Check if the error is related to authentication
       if (isAuthError(error)) return authErrorStream(config.preferredLanguage || '');
+
+      // No proxy base URL available — tell the user to reconfigure rather than
+      // silently returning no streams.
+      if (error instanceof MissingBaseUrlError) return configErrorStream();
 
       return { streams: [] };
     }
