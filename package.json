@@ -7,7 +7,7 @@
     "test:coverage": "npm run test:coverage --workspaces",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run build:cf && tsc --noEmit",
     "build": "npm -w packages/shared run build && npm -w packages/api run build && npm -w packages/addon run build",
     "build:cf": "npm -w packages/shared run build && npm -w packages/api run build && npm -w packages/addon run build && npm -w packages/cloudflare-worker run build",
     "start": "npm -w packages/addon start",

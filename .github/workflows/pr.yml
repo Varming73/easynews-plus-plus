@@ -7,32 +7,21 @@ on:
       - edited
       - synchronize
 
+# Minimal permissions. This workflow runs in the privileged pull_request_target
+# context, so it deliberately does NOT check out or execute any PR code — it only
+# validates PR metadata (the title). Code-dependent checks (build, tests,
+# typecheck, formatting) run in test.yml under the unprivileged pull_request
+# trigger against the PR's own commit.
 permissions:
   pull-requests: read
   contents: read
 
 jobs:
-  validate:
-    name: Validate PR
+  validate-title:
+    name: Validate PR title
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '23.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Validate PR title
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Prettier check
-        run: npm run format:check
