@@ -76,5 +76,5 @@ Four packages under `packages/`, built in dependency order via TypeScript projec
 - **`custom-titles.json`** (repo root) is imported at build time into the addon (and version/description come from the root `package.json`). For Docker, it's mounted as a volume so it can be edited without rebuilding.
 - **Two cache layers**: api-level (per search query) and addon-level (per stream request). Both are in-memory `Map`s — they reset on restart and are not shared across worker instances.
 - **Tuning via env vars** (see `.env.example`): `PORT`, `EASYNEWS_LOG_LEVEL`, `TOTAL_MAX_RESULTS`, `MAX_PAGES`, `MAX_RESULTS_PER_PAGE`, `CACHE_TTL`, `TMDB_API_KEY`. The worker uses `wrangler.toml` vars instead of `.env`.
-</content>
-</invoke>
+  </content>
+  </invoke>

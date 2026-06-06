@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
+# package-lock.json is intentionally committed for reproducible `npm ci` builds.
 
 # Build output
 dist/
