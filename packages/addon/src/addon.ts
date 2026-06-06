@@ -960,8 +960,13 @@ function mapStream({
   // bingeGroup lets the player auto-continue the next episode from the SAME
   // source tier without bouncing back to stream selection. Keep it stable across
   // episodes (quality + audio languages + container), so consecutive episodes of
-  // the same release auto-advance, while distinct tiers stay distinct.
-  const bingeLang = file.alangs?.length ? file.alangs.join(',') : 'unknown';
+  // the same release auto-advance, while distinct tiers stay distinct. The
+  // language key is normalized (lowercased, de-duped, sorted) so the same set of
+  // audio tracks in a different order between episodes still yields the same key.
+  const bingeLang =
+    Array.isArray(file.alangs) && file.alangs.length
+      ? [...new Set(file.alangs.map((l: string) => String(l).toLowerCase()))].sort().join(',')
+      : 'unknown';
   const bingeGroup = `easynews-plus-plus|${quality || 'default'}|${bingeLang}|${fileExtension || 'unknown'}`;
 
   const stream: Stream & { _sort?: SortMeta } = {

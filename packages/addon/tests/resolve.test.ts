@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   isAllowedEasynewsHost,
   parseResolvePayload,
@@ -141,5 +141,23 @@ describe('resolved-URL cache', () => {
     setCachedResolvedUrl('payloadA', 'https://cdn.easynews.com/dl/tokenA/file.mkv');
     clearResolvedUrlCache();
     expect(getCachedResolvedUrl('payloadA')).toBeNull();
+  });
+
+  it('expires an entry after the TTL (default 300s)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(0);
+      setCachedResolvedUrl('payloadA', 'https://cdn.easynews.com/dl/tokenA/file.mkv');
+
+      // Still valid just before the 300s TTL.
+      vi.setSystemTime(299_000);
+      expect(getCachedResolvedUrl('payloadA')).toBe('https://cdn.easynews.com/dl/tokenA/file.mkv');
+
+      // Expired just after it.
+      vi.setSystemTime(301_000);
+      expect(getCachedResolvedUrl('payloadA')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

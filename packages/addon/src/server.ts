@@ -170,8 +170,12 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
       // Redirect client to the real CDN URL
       (upstream: IncomingMessage & { responseUrl?: string }) => {
         const finalUrl = upstream.responseUrl || cleanUrl;
-        // Cache the resolved URL so seeks / retries skip the round-trip.
-        if (upstream.responseUrl) setCachedResolvedUrl(payload, finalUrl);
+        // Only cache when an actual redirect to a different URL occurred (i.e. the
+        // tokenized, self-authorizing CDN URL). follow-redirects sets responseUrl
+        // even when NO redirect happened, in which case it equals cleanUrl — the
+        // credential-stripped members URL that would 401 on its own. Caching that
+        // would amplify failures, and it matches the Worker (caches Location only).
+        if (finalUrl !== cleanUrl) setCachedResolvedUrl(payload, finalUrl);
         res.redirect(307, finalUrl);
       }
     );

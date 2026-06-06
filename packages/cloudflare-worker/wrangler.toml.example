@@ -19,6 +19,11 @@ CACHE_TTL = "6"
 TOTAL_MAX_RESULTS = "500"
 MAX_PAGES = "10"
 MAX_RESULTS_PER_PAGE = "250"
+# Performance tuning (safe defaults; change only if you know what you're doing)
+SEARCH_CONCURRENCY = "5" # Title-variant searches run in parallel batches of this size (min 1)
+META_FETCH_TIMEOUT_MS = "5000" # Timeout (ms) for metadata lookups (IMDb / Cinemeta / TMDB)
+MAX_CACHE_ENTRIES = "1000" # Max entries kept in the in-memory search-results cache
+RESOLVE_CACHE_TTL_SECONDS = "300" # How long the /resolve proxy reuses a resolved CDN URL (seconds)
 TMDB_API_KEY = "" # Add encrypted value to your Cloudflare worker instance
 CHATWOOT_ENABLED = "false"
 CHATWOOT_BASE_URL= ""

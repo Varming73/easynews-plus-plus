@@ -113,3 +113,69 @@ describe('stripAuthOnForeignHost — real follow-redirects integration', () => {
     expect(finalAuth).toBe('Basic SECRET');
   });
 });
+
+/**
+ * The Express /resolve endpoint caches the resolved URL only when it differs from
+ * the requested cleanUrl — i.e. only when an actual redirect to the (tokenized,
+ * self-authorizing) CDN URL occurred. This pins the premise that gate relies on:
+ * follow-redirects' responseUrl equals the request URL when there is NO redirect,
+ * and differs when there IS one. If that ever changed, the endpoint could cache
+ * the unauthenticated members URL on a non-redirect response.
+ */
+function requestResponseUrl(url: string): Promise<string | undefined> {
+  return new Promise((resolve, reject) => {
+    const req = (
+      frHttp as unknown as {
+        request: (
+          u: string,
+          o: object,
+          cb: (r: http.IncomingMessage & { responseUrl?: string }) => void
+        ) => http.ClientRequest;
+      }
+    ).request(url, { method: 'GET', headers: { Range: 'bytes=0-0' }, maxRedirects: 5 }, res => {
+      res.on('data', () => {});
+      res.on('end', () => resolve(res.responseUrl));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+describe('follow-redirects responseUrl — Express cache-eligibility premise', () => {
+  it('responseUrl equals the request URL when NO redirect occurs (must not be cached)', async () => {
+    const server = await startServer((_req, res) => {
+      res.statusCode = 200;
+      res.end('ok');
+    });
+    try {
+      const requestUrl = `http://127.0.0.1:${server.port}/`;
+      const responseUrl = await requestResponseUrl(requestUrl);
+      expect(responseUrl).toBe(requestUrl);
+    } finally {
+      server.close();
+    }
+  });
+
+  it('responseUrl differs from the request URL when a redirect occurs (eligible to cache)', async () => {
+    let port = 0;
+    const server = await startServer((req, res) => {
+      if (req.url === '/final') {
+        res.statusCode = 200;
+        res.end('ok');
+        return;
+      }
+      res.statusCode = 302;
+      res.setHeader('Location', `http://127.0.0.1:${port}/final`);
+      res.end();
+    });
+    port = server.port;
+    try {
+      const requestUrl = `http://127.0.0.1:${port}/`;
+      const responseUrl = await requestResponseUrl(requestUrl);
+      expect(responseUrl).toBe(`http://127.0.0.1:${port}/final`);
+      expect(responseUrl).not.toBe(requestUrl);
+    } finally {
+      server.close();
+    }
+  });
+});

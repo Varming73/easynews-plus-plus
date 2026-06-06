@@ -279,14 +279,19 @@ You can configure the addon server using environment variables:
    - `TOTAL_MAX_RESULTS`: Maximum total results to return
    - `MAX_PAGES`: Maximum number of pages to search
    - `MAX_RESULTS_PER_PAGE`: Maximum results per page
-   - `CACHE_TTL`: Cache time-to-live in hours
-5. **TMDB Integration**:
+   - `CACHE_TTL`: Search-results cache time-to-live in hours
+5. **Performance Tuning** (safe defaults; change only if you know what you're doing):
+   - `SEARCH_CONCURRENCY`: Title-variant searches run in parallel batches of this size (default `5`, minimum `1`)
+   - `META_FETCH_TIMEOUT_MS`: Timeout in ms for metadata lookups — IMDb / Cinemeta / TMDB (default `5000`)
+   - `MAX_CACHE_ENTRIES`: Maximum entries kept in the in-memory search-results cache (default `1000`)
+   - `RESOLVE_CACHE_TTL_SECONDS`: How long the `/resolve` proxy reuses a resolved CDN URL, in seconds (default `300`). Applies to both the self-hosted server and the Cloudflare Worker.
+6. **TMDB Integration**:
    - `TMDB_API_KEY`: TMDB API key for translated title search
-6. **Chatwoot Live Support Chat Settings**:
+7. **Chatwoot Live Support Chat Settings**:
    - `CHATWOOT_ENABLED`: Enable or disable Chatwoot integration
    - `CHATWOOT_BASE_URL`: Base URL for the Chatwoot installation
    - `CHATWOOT_WEBSITE_TOKEN`: Website token for Chatwoot authentication
-7. **Streaming / Security**:
+8. **Streaming / Security**:
    - `ADDON_BASE_URL`: Public origin of this addon (e.g. `https://your-addon.example.com`).
      Stream URLs are routed through the addon's `/resolve` proxy so your Easynews
      credentials are never embedded in the URL handed to the player. Installs created
