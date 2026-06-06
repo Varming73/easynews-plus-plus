@@ -29,6 +29,15 @@ if (!TMDB_API_KEY) {
   useTMDB = false;
 }
 
+// Metadata lookups (IMDb, Cinemeta, TMDB) sit on the critical path BEFORE any
+// Easynews search runs. Without a timeout a single hung endpoint stalls the whole
+// stream request indefinitely. Bound every metadata fetch; override via env.
+const META_FETCH_TIMEOUT_MS = Number(process.env.META_FETCH_TIMEOUT_MS) || 5000;
+
+function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(META_FETCH_TIMEOUT_MS) });
+}
+
 /**
  * Converts ISO 639-2 language code (used in Stremio) to ISO 639-1 (used by TMDB)
  * @param langCode ISO 639-2 language code
@@ -53,15 +62,17 @@ function convertToTMDBLanguageCode(langCode: string): string {
  * Fetches translated title for a movie or TV show from TMDB
  * @param imdbId IMDb ID
  * @param preferredLanguage Preferred language code (ISO 639-2 format like 'ger', 'fre', etc.)
- * @returns The translated title if available, or null if not found
+ * @returns The translated title (or null) AND the resolved TMDB id (or null).
+ *          Returning the id here lets callers avoid a second, redundant
+ *          TMDB `/find` round-trip (the id is resolved from the same lookup).
  */
 async function getTMDBTranslatedTitle(
   imdbId: string,
   preferredLanguage: string
-): Promise<string | null> {
+): Promise<{ title: string | null; tmdbId: string | null }> {
   // Skip if TMDB integration is disabled or no language preference
   if (!useTMDB || !preferredLanguage || preferredLanguage === '') {
-    return null;
+    return { title: null, tmdbId: null };
   }
 
   // Convert language code to ISO 639-1 for TMDB API
@@ -72,7 +83,7 @@ async function getTMDBTranslatedTitle(
 
   try {
     // First, we need to find the TMDB ID from the IMDb ID
-    const findResponse = await fetch(
+    const findResponse = await fetchWithTimeout(
       `https://api.themoviedb.org/3/find/${imdbId}?api_key=${TMDB_API_KEY}&external_source=imdb_id`
     );
 
@@ -85,7 +96,7 @@ async function getTMDBTranslatedTitle(
         logger.error('TMDB API key is invalid. Disabling TMDB integration.');
         useTMDB = false;
       }
-      return null;
+      return { title: null, tmdbId: null };
     }
 
     const findData = await findResponse.json();
@@ -96,22 +107,23 @@ async function getTMDBTranslatedTitle(
 
     if (!isMovie && !isTVShow) {
       logger.info(`No TMDB entry found for IMDb ID: ${imdbId}`);
-      return null;
+      return { title: null, tmdbId: null };
     }
 
-    // Get the TMDB ID
-    const tmdbId = isMovie ? findData.movie_results[0].id : findData.tv_results[0].id;
+    // Get the TMDB ID (reused by callers to avoid a second /find request)
+    const rawTmdbId = isMovie ? findData.movie_results[0].id : findData.tv_results[0].id;
+    const tmdbId: string = rawTmdbId.toString();
 
     // Now fetch the details in the preferred language
     const detailsUrl = isMovie
       ? `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=${tmdbLangCode}`
       : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=${tmdbLangCode}`;
 
-    const detailsResponse = await fetch(detailsUrl);
+    const detailsResponse = await fetchWithTimeout(detailsUrl);
 
     if (!detailsResponse.ok) {
       logger.error(`TMDB API details error: ${detailsResponse.status}`);
-      return null;
+      return { title: null, tmdbId };
     }
 
     const detailsData = await detailsResponse.json();
@@ -120,12 +132,12 @@ async function getTMDBTranslatedTitle(
     if (detailsData.title) {
       const translatedTitle = detailsData.title;
       logger.debug(`Found translated title for ${imdbId} in ${tmdbLangCode}: ${translatedTitle}`);
-      return translatedTitle;
+      return { title: translatedTitle, tmdbId };
     } else if (detailsData.name) {
       // For TV shows
       const translatedTitle = detailsData.name;
       logger.debug(`Found translated title for ${imdbId} in ${tmdbLangCode}: ${translatedTitle}`);
-      return translatedTitle;
+      return { title: translatedTitle, tmdbId };
     }
 
     // If we couldn't get a translation from movie/show details, try fetching translations explicitly
@@ -133,11 +145,11 @@ async function getTMDBTranslatedTitle(
       ? `https://api.themoviedb.org/3/movie/${tmdbId}/translations?api_key=${TMDB_API_KEY}`
       : `https://api.themoviedb.org/3/tv/${tmdbId}/translations?api_key=${TMDB_API_KEY}`;
 
-    const translationsResponse = await fetch(translationsUrl);
+    const translationsResponse = await fetchWithTimeout(translationsUrl);
 
     if (!translationsResponse.ok) {
       logger.error(`TMDB API translations error: ${translationsResponse.status}`);
-      return null;
+      return { title: null, tmdbId };
     }
 
     const translationsData = await translationsResponse.json();
@@ -154,15 +166,17 @@ async function getTMDBTranslatedTitle(
         logger.debug(
           `Found translated title from translations endpoint for ${imdbId} in ${tmdbLangCode}: ${translatedTitle}`
         );
-        return translatedTitle;
+        return { title: translatedTitle, tmdbId };
       }
     }
 
     logger.info(`No translation found for ${imdbId} in ${tmdbLangCode}`);
-    return null;
+    // No translation, but the id was still resolved — hand it back so callers
+    // don't need a separate /find.
+    return { title: null, tmdbId };
   } catch (error) {
     logger.error(`Error fetching TMDB translation for ${imdbId}: ${error}`);
-    return null;
+    return { title: null, tmdbId: null };
   }
 }
 
@@ -172,7 +186,7 @@ async function imdbMetaProvider(
 ): Promise<MetaProviderResponse> {
   var [tt, season, episode] = id.split(':');
 
-  return fetch(`https://v2.sg.media-imdb.com/suggestion/t/${tt}.json`)
+  return fetchWithTimeout(`https://v2.sg.media-imdb.com/suggestion/t/${tt}.json`)
     .then(res => res.json())
     .then(json => {
       return json.d.find((item: { id: string }) => item.id === tt);
@@ -187,7 +201,10 @@ async function imdbMetaProvider(
 
       // If preferred language is provided, try to get a translated title
       if (preferredLanguage && preferredLanguage !== '') {
-        const translatedTitle = await getTMDBTranslatedTitle(tt, preferredLanguage);
+        const { title: translatedTitle, tmdbId: resolvedTmdbId } = await getTMDBTranslatedTitle(
+          tt,
+          preferredLanguage
+        );
         if (translatedTitle) {
           // Add both original translated title and sanitized version
           if (!alternativeNames.includes(translatedTitle)) {
@@ -202,8 +219,8 @@ async function imdbMetaProvider(
             logger.info(`Added sanitized TMDB title: ${sanitizedTitle}`);
           }
 
-          // Try to get the actual TMDB ID
-          tmdbId = await getTMDBId(tt);
+          // Reuse the id resolved during the translation lookup (no extra /find)
+          tmdbId = resolvedTmdbId;
         }
       } else if (useTMDB) {
         // Even if we don't need translations, try to get the TMDB ID if TMDB is enabled
@@ -231,7 +248,7 @@ async function getTMDBId(imdbId: string): Promise<string | null> {
   }
 
   try {
-    const findResponse = await fetch(
+    const findResponse = await fetchWithTimeout(
       `https://api.themoviedb.org/3/find/${imdbId}?api_key=${TMDB_API_KEY}&external_source=imdb_id`
     );
 
@@ -266,7 +283,7 @@ async function cinemetaMetaProvider(
 ): Promise<MetaProviderResponse> {
   var [tt, season, episode] = id.split(':');
 
-  return fetch(`https://v3-cinemeta.strem.io/meta/${type}/${tt}.json`)
+  return fetchWithTimeout(`https://v3-cinemeta.strem.io/meta/${type}/${tt}.json`)
     .then(res => res.json())
     .then(json => {
       const meta = json.meta;
@@ -282,38 +299,41 @@ async function cinemetaMetaProvider(
 
       // If preferred language is provided, try to get a translated title
       if (preferredLanguage && preferredLanguage !== '') {
-        return getTMDBTranslatedTitle(tt, preferredLanguage).then(async translatedTitle => {
-          if (translatedTitle) {
-            // Add both original translated title and sanitized version
-            if (!alternativeNames.includes(translatedTitle)) {
-              alternativeNames.push(translatedTitle);
-              logger.info(`Added TMDB translated title: ${translatedTitle}`);
+        return getTMDBTranslatedTitle(tt, preferredLanguage).then(
+          ({ title: translatedTitle, tmdbId: resolvedTmdbId }) => {
+            if (translatedTitle) {
+              // Add both original translated title and sanitized version
+              if (!alternativeNames.includes(translatedTitle)) {
+                alternativeNames.push(translatedTitle);
+                logger.info(`Added TMDB translated title: ${translatedTitle}`);
+              }
+
+              // Add sanitized version for search matching
+              const sanitizedTitle = sanitizeTitle(translatedTitle);
+              if (
+                sanitizedTitle !== translatedTitle &&
+                !alternativeNames.includes(sanitizedTitle)
+              ) {
+                alternativeNames.push(sanitizedTitle);
+                logger.debug(`Added sanitized TMDB title: ${sanitizedTitle}`);
+              }
             }
 
-            // Add sanitized version for search matching
-            const sanitizedTitle = sanitizeTitle(translatedTitle);
-            if (sanitizedTitle !== translatedTitle && !alternativeNames.includes(sanitizedTitle)) {
-              alternativeNames.push(sanitizedTitle);
-              logger.debug(`Added sanitized TMDB title: ${sanitizedTitle}`);
-            }
+            // The id is resolved by getTMDBTranslatedTitle's own /find — reuse it
+            // in both cases instead of issuing a second /find via getTMDBId.
+            tmdbId = resolvedTmdbId;
 
-            // Try to get the actual TMDB ID
-            tmdbId = await getTMDBId(tt);
-          } else if (useTMDB) {
-            // Even if we don't need translations, try to get the TMDB ID if TMDB is enabled
-            tmdbId = await getTMDBId(tt);
+            return {
+              name,
+              originalName,
+              alternativeNames,
+              year,
+              episode,
+              season,
+              tmdbId, // Use the actual TMDB ID if available
+            } satisfies MetaProviderResponse;
           }
-
-          return {
-            name,
-            originalName,
-            alternativeNames,
-            year,
-            episode,
-            season,
-            tmdbId, // Use the actual TMDB ID if available
-          } satisfies MetaProviderResponse;
-        });
+        );
       }
 
       // If no language preference, still try to get TMDB ID if enabled

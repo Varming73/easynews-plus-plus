@@ -24,6 +24,10 @@ describe('EasynewsAPI', () => {
   let api: EasynewsAPI;
 
   beforeEach(() => {
+    // The search cache is now process-shared, so clear it between tests to keep
+    // them isolated (otherwise one test's cached entry leaks into the next).
+    EasynewsAPI.clearCache();
+
     // Create a new API instance for each test
     api = new EasynewsAPI({
       username: 'test-user',

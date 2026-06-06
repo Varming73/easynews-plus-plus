@@ -96,6 +96,13 @@ const builder = new addonBuilder(manifest);
 const requestCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
 
+// Negative-cache TTLs (seconds) for the protocol-level cacheMaxAge. Short, so a
+// newly-uploaded title or a recovered upstream error becomes visible soon, but
+// non-zero so the expensive no-result fan-out and error paths aren't re-run on
+// every single open (the most expensive requests were previously uncached).
+const EMPTY_RESULT_CACHE_MAX_AGE = 60 * 10; // 10 minutes
+const ERROR_CACHE_MAX_AGE = 60; // 1 minute
+
 function getFromCache<T>(key: string): T | null {
   const cached = requestCache.get(key);
   if (!cached) return null;
@@ -487,7 +494,12 @@ builder.defineStreamHandler(
       }
 
       if (allSearchResults.length === 0) {
-        return { streams: [] };
+        // Expensive no-result path: the full search fan-out ran and returned
+        // nothing. Cache it (in-process + protocol-level) so repeats don't redo
+        // the whole fan-out — this was previously uncached entirely.
+        const emptyResult = { streams: [], cacheMaxAge: EMPTY_RESULT_CACHE_MAX_AGE };
+        setCache(cacheKey, emptyResult);
+        return emptyResult;
       }
 
       const processedHashes = new Set<string>();
@@ -1228,10 +1240,13 @@ builder.defineStreamHandler(
         delete (stream as { _temp?: unknown })._temp;
       }
 
-      // Cache the result
-      setCache(cacheKey, { streams, ...getCacheOptions(streams.length) });
+      // Cache the result and return it WITH the cache options so even the cold
+      // (first) response carries cacheMaxAge — previously cacheMaxAge only took
+      // effect on a subsequent in-process hit.
+      const result = { streams, ...getCacheOptions(streams.length) };
+      setCache(cacheKey, result);
 
-      return { streams };
+      return result;
     } catch (error) {
       logError({
         message: `failed to handle stream: ${error}`,
@@ -1246,7 +1261,10 @@ builder.defineStreamHandler(
       // silently returning no streams.
       if (error instanceof MissingBaseUrlError) return configErrorStream();
 
-      return { streams: [] };
+      // Briefly cache the error response at the protocol level so a transient
+      // upstream failure doesn't get hammered on every open, but recovers fast.
+      // Deliberately NOT written to the in-process cache (errors are transient).
+      return { streams: [], cacheMaxAge: ERROR_CACHE_MAX_AGE };
     }
   }
 );
@@ -1330,8 +1348,12 @@ function getPublishDate(timestamp: number): string {
 }
 
 function getCacheOptions(itemsLength: number): Partial<Cache> {
+  // Non-empty results scale up to a week; an empty (but successful) result still
+  // gets a short positive TTL so it isn't recomputed on every open. Previously
+  // itemsLength === 0 yielded cacheMaxAge: 0 (explicitly non-cacheable).
+  const computed = (Math.min(itemsLength, 10) / 10) * 3600 * 24 * 7;
   return {
-    cacheMaxAge: (Math.min(itemsLength, 10) / 10) * 3600 * 24 * 7, // up to 1 week of cache for items
+    cacheMaxAge: Math.max(EMPTY_RESULT_CACHE_MAX_AGE, computed),
   };
 }
 

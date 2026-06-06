@@ -8,12 +8,37 @@ export const logger = createLogger({
   level: process.env.EASYNEWS_LOG_LEVEL || undefined, // Use the environment variable if set
 });
 
+// Search results are cached PER PROCESS and shared across EasynewsAPI instances.
+// The addon constructs a fresh instance on every stream request, so an
+// instance-local cache would never survive a single request (CACHE_TTL would be
+// effectively dead). Sharing the map lets repeat requests in the same process
+// actually hit the cache. Entries are credential-scoped (see credFingerprint) so
+// one account's cached results can never be served to a different account — in
+// particular a request with WRONG credentials still misses and gets a real 401
+// rather than someone else's data.
+const sharedCache = new Map<string, { data: EasynewsSearchResponse; timestamp: number }>();
+const MAX_CACHE_ENTRIES = parseIntEnv(process.env.MAX_CACHE_ENTRIES, 1000);
+
+// Small non-cryptographic fingerprint (FNV-1a) of the credentials, used only to
+// namespace cache entries per account. It is not security-sensitive and is never
+// logged in full; distinct accounts simply need to land on distinct keys.
+function credFingerprint(username: string, password: string): string {
+  let h = 0x811c9dc5;
+  const s = `${username}:${password}`;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
+}
+
 export class EasynewsAPI {
   private readonly baseUrl = 'https://members.easynews.com';
   private readonly username: string;
   private readonly password: string;
-  private readonly cache = new Map<string, { data: EasynewsSearchResponse; timestamp: number }>();
+  private readonly cache = sharedCache;
   private readonly cacheTTL = 1000 * 60 * 60 * parseIntEnv(process.env.CACHE_TTL, 24); // 24 hours
+  private readonly credKey: string;
 
   constructor(options: { username: string; password: string }) {
     if (!options) {
@@ -22,13 +47,23 @@ export class EasynewsAPI {
 
     this.username = options.username;
     this.password = options.password;
+    this.credKey = credFingerprint(this.username, this.password);
+  }
+
+  /** Clears the shared search cache (primarily for tests / operational reset). */
+  static clearCache(): void {
+    sharedCache.clear();
   }
 
   private getCacheKey(options: SearchOptions): string {
     return JSON.stringify({
+      cred: this.credKey,
       query: options.query,
       pageNr: options.pageNr || 1,
-      maxResults: parseIntEnv(process.env.MAX_RESULTS_PER_PAGE, 250),
+      // Use the ACTUAL page size requested, not the env default — otherwise two
+      // different page sizes (e.g. searchAll's computed optimalPageSize) collide
+      // on the same key and return each other's results.
+      maxResults: options.maxResults ?? parseIntEnv(process.env.MAX_RESULTS_PER_PAGE, 250),
       sort1: options.sort1 || 'dsize',
       sort1Direction: options.sort1Direction || '-',
       sort2: options.sort2 || 'relevance',
@@ -61,6 +96,14 @@ export class EasynewsAPI {
       `Caching ${data.data?.length || 0} results for key: ${cacheKey.substring(0, 50)}...`
     );
     this.cache.set(cacheKey, { data, timestamp: Date.now() });
+
+    // The shared cache is process-lived, so bound its size. Map preserves
+    // insertion order, so deleting the first key evicts the oldest entry.
+    while (this.cache.size > MAX_CACHE_ENTRIES) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest === undefined) break;
+      this.cache.delete(oldest);
+    }
   }
 
   async search({
