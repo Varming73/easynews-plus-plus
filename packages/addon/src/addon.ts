@@ -942,6 +942,13 @@ function mapStream({
       !!preferredLang && Array.isArray(file.alangs) && file.alangs.includes(preferredLang),
   };
 
+  // bingeGroup lets the player auto-continue the next episode from the SAME
+  // source tier without bouncing back to stream selection. Keep it stable across
+  // episodes (quality + audio languages + container), so consecutive episodes of
+  // the same release auto-advance, while distinct tiers stay distinct.
+  const bingeLang = file.alangs?.length ? file.alangs.join(',') : 'unknown';
+  const bingeGroup = `easynews-plus-plus|${quality || 'default'}|${bingeLang}|${fileExtension || 'unknown'}`;
+
   const stream: Stream & { _sort?: SortMeta } = {
     name: `Easynews++${quality ? `\n${quality}` : ''}`,
     description: [
@@ -954,6 +961,9 @@ function mapStream({
     behaviorHints: {
       notWebReady: true,
       filename: `${title}${fileExtension}`,
+      bingeGroup,
+      // Exact size in bytes was computed and threaded in but never emitted before.
+      ...(typeof videoSize === 'number' ? { videoSize } : {}),
     },
     // Precomputed sort keys (internal; removed before returning).
     _sort: sortMeta,

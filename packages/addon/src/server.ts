@@ -12,7 +12,13 @@ import { addonInterface } from './addon.js';
 import { URL } from 'url';
 import { createLogger, getVersion } from 'easynews-plus-plus-shared';
 import { sanitizeUiLanguage } from './i18n/index.js';
-import { parseResolvePayload, ResolveError, stripAuthOnForeignHost } from './resolve.js';
+import {
+  parseResolvePayload,
+  ResolveError,
+  stripAuthOnForeignHost,
+  getCachedResolvedUrl,
+  setCachedResolvedUrl,
+} from './resolve.js';
 
 // Create a logger with server prefix and explicitly set the level from environment variable
 export const logger = createLogger({
@@ -107,12 +113,22 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
 
   // Resolve endpoint for stream requests
   app.get('/resolve/:payload/:filename', async (req: Request, res: Response) => {
+    const payload = req.params.payload as string;
+
+    // Serve a recently-resolved CDN URL without re-hitting Easynews (see the
+    // cache rationale in ./resolve.ts). Still 307 so the player behaves the same.
+    const cachedUrl = getCachedResolvedUrl(payload);
+    if (cachedUrl) {
+      res.redirect(307, cachedUrl);
+      return;
+    }
+
     // Decode + validate the payload and strip credentials into a Basic auth
     // header (shared with the Cloudflare worker, see ./resolve.ts).
     let cleanUrl: string;
     let authHeader: string;
     try {
-      ({ cleanUrl, authHeader } = parseResolvePayload(req.params.payload as string));
+      ({ cleanUrl, authHeader } = parseResolvePayload(payload));
     } catch (err) {
       if (err instanceof ResolveError) {
         res.status(err.status).send(err.message);
@@ -154,6 +170,8 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
       // Redirect client to the real CDN URL
       (upstream: IncomingMessage & { responseUrl?: string }) => {
         const finalUrl = upstream.responseUrl || cleanUrl;
+        // Cache the resolved URL so seeks / retries skip the round-trip.
+        if (upstream.responseUrl) setCachedResolvedUrl(payload, finalUrl);
         res.redirect(307, finalUrl);
       }
     );

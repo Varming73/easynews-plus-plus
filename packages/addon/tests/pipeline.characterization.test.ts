@@ -176,4 +176,20 @@ describe('stream pipeline characterization', () => {
     const { streams } = await runHandler(baseConfig({ maxFileSize: '5' }));
     expect(streams.map(qualityOf)).toEqual(['4K']);
   });
+
+  it('emits behaviorHints: bingeGroup (per quality) and videoSize (bytes)', async () => {
+    const { streams } = await runHandler(baseConfig({ sortingPreference: 'quality_first' }));
+    const fourK = streams.find((s: any) => qualityOf(s) === '4K');
+    expect(fourK.behaviorHints.videoSize).toBe(2e9); // rawSize of the 4K file
+    // bingeGroup is stable and tier-specific so episodes auto-continue per quality.
+    expect(fourK.behaviorHints.bingeGroup).toContain('easynews-plus-plus');
+    expect(fourK.behaviorHints.bingeGroup).toContain('4K');
+    const teneighty = streams.find((s: any) => qualityOf(s) === '1080p');
+    expect(teneighty.behaviorHints.bingeGroup).not.toBe(fourK.behaviorHints.bingeGroup);
+  });
+
+  it('does not leak the internal _sort field to clients', async () => {
+    const { streams } = await runHandler(baseConfig());
+    for (const s of streams) expect((s as any)._sort).toBeUndefined();
+  });
 });

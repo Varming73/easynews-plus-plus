@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import {
   isAllowedEasynewsHost,
   parseResolvePayload,
   stripAuthOnForeignHost,
   ResolveError,
+  getCachedResolvedUrl,
+  setCachedResolvedUrl,
+  clearResolvedUrlCache,
 } from '../src/resolve';
 
 const encode = (s: string) => Buffer.from(s, 'utf-8').toString('base64url');
@@ -117,5 +120,26 @@ describe('stripAuthOnForeignHost (redirect credential-leak guard)', () => {
     };
     before(options);
     expect(options.headers.Authorization).toBe('Basic xxx');
+  });
+});
+
+describe('resolved-URL cache', () => {
+  beforeEach(() => clearResolvedUrlCache());
+
+  it('returns null for an unknown payload', () => {
+    expect(getCachedResolvedUrl('nope')).toBeNull();
+  });
+
+  it('stores and returns a resolved URL keyed by payload', () => {
+    setCachedResolvedUrl('payloadA', 'https://cdn.easynews.com/dl/tokenA/file.mkv');
+    expect(getCachedResolvedUrl('payloadA')).toBe('https://cdn.easynews.com/dl/tokenA/file.mkv');
+    // Different payload (e.g. different account) does not share the entry.
+    expect(getCachedResolvedUrl('payloadB')).toBeNull();
+  });
+
+  it('clearResolvedUrlCache empties the cache', () => {
+    setCachedResolvedUrl('payloadA', 'https://cdn.easynews.com/dl/tokenA/file.mkv');
+    clearResolvedUrlCache();
+    expect(getCachedResolvedUrl('payloadA')).toBeNull();
   });
 });

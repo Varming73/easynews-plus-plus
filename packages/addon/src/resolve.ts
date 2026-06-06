@@ -83,6 +83,48 @@ export function parseResolvePayload(payloadBase64url: string): ResolvedTarget {
   };
 }
 
+/**
+ * Short-lived cache of resolved CDN URLs, keyed by the opaque `/resolve` payload.
+ *
+ * The payload encodes both the file URL AND the user's credentials, so a key is
+ * unique per (file, account) and a resolved URL is never served across users.
+ *
+ * Safety of caching a tokenized CDN URL: after the 307, the player streams that
+ * URL directly for the entire file without re-authenticating, so the CDN token
+ * must remain valid for at least a full playback session. A few minutes of
+ * caching is therefore comfortably within the token's lifetime, while removing
+ * the extra authenticated Easynews round-trip on play-start retries and on seeks
+ * that re-hit /resolve. TTL is configurable and intentionally conservative.
+ */
+const resolvedUrlCache = new Map<string, { url: string; expires: number }>();
+const RESOLVED_URL_TTL_MS = (Number(process.env.RESOLVE_CACHE_TTL_SECONDS) || 300) * 1000;
+const RESOLVED_URL_MAX_ENTRIES = 5000;
+
+export function getCachedResolvedUrl(payload: string): string | null {
+  const hit = resolvedUrlCache.get(payload);
+  if (!hit) return null;
+  if (hit.expires <= Date.now()) {
+    resolvedUrlCache.delete(payload);
+    return null;
+  }
+  return hit.url;
+}
+
+export function setCachedResolvedUrl(payload: string, url: string): void {
+  resolvedUrlCache.set(payload, { url, expires: Date.now() + RESOLVED_URL_TTL_MS });
+  // Bound the map (insertion-order eviction of the oldest entries).
+  while (resolvedUrlCache.size > RESOLVED_URL_MAX_ENTRIES) {
+    const oldest = resolvedUrlCache.keys().next().value;
+    if (oldest === undefined) break;
+    resolvedUrlCache.delete(oldest);
+  }
+}
+
+/** Clears the resolved-URL cache (primarily for tests). */
+export function clearResolvedUrlCache(): void {
+  resolvedUrlCache.clear();
+}
+
 interface RedirectOptions {
   hostname?: string;
   host?: string;

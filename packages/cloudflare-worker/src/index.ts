@@ -5,6 +5,8 @@ import {
   customTemplate,
   parseResolvePayload,
   ResolveError,
+  getCachedResolvedUrl,
+  setCachedResolvedUrl,
   getUILanguage,
   sanitizeUiLanguage,
 } from 'easynews-plus-plus-addon';
@@ -62,6 +64,13 @@ app.get('/resolve/:payload/:filename', async c => {
     return c.text('Missing url parameter', 400);
   }
 
+  // Serve a recently-resolved CDN URL without re-hitting Easynews (per-isolate
+  // on Workers; see the cache rationale in packages/addon/src/resolve.ts).
+  const cachedUrl = getCachedResolvedUrl(encodedUrl);
+  if (cachedUrl) {
+    return c.redirect(cachedUrl, 307);
+  }
+
   // Decode + validate the payload and strip credentials into a Basic auth header
   // (shared with the Express server, see packages/addon/src/resolve.ts).
   let cleanUrl: string;
@@ -89,7 +98,11 @@ app.get('/resolve/:payload/:filename', async c => {
     });
 
     // If we got a 3xx (redirect), grab the Location header; otherwise fall back
-    const location = response.headers.get('Location') || cleanUrl;
+    const redirectLocation = response.headers.get('Location');
+    const location = redirectLocation || cleanUrl;
+
+    // Cache the resolved CDN URL so seeks / retries skip the round-trip.
+    if (redirectLocation) setCachedResolvedUrl(encodedUrl, location);
 
     // Redirect to the final URL
     return c.redirect(location, 307);
