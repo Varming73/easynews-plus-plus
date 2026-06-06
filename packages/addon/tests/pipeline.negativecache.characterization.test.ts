@@ -142,4 +142,46 @@ describe('negative caching characterization', () => {
     // One match ⇒ (1/10) of a week ≈ 16.8h; assert it's well above the negative-cache floor.
     expect(res.cacheMaxAge).toBeGreaterThan(3600);
   });
+
+  // The in-process request cache must honor each entry's own cacheMaxAge, not the
+  // fixed 30-min default — otherwise a short-lived empty result hides newly
+  // available content for far longer than intended.
+  it('expires an empty result from the in-process cache per its 10-min cacheMaxAge', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(0);
+      mockSearch.mockResolvedValue({ data: [], ...DL });
+
+      await runHandler(baseConfig({ __id: 'tt0000013' }));
+      const afterCold = mockSearch.mock.calls.length;
+      expect(afterCold).toBeGreaterThan(0);
+
+      // 11 minutes later (> the 10-min empty TTL): the entry must be expired, so
+      // the handler re-runs the search rather than serving a stale empty result.
+      vi.setSystemTime(11 * 60 * 1000);
+      await runHandler(baseConfig({ __id: 'tt0000013' }));
+      expect(mockSearch.mock.calls.length).toBeGreaterThan(afterCold);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a non-empty success in the in-process cache for the full 30-min TTL', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(0);
+      mockSearch.mockResolvedValue({ data: [fileOf('Test Movie 2020 1080p WEB-DL')], ...DL });
+
+      await runHandler(baseConfig({ __id: 'tt0000014' }));
+      const afterCold = mockSearch.mock.calls.length;
+
+      // 11 minutes later: success entries live for 30 min, so this is still a hit
+      // and triggers no new searches.
+      vi.setSystemTime(11 * 60 * 1000);
+      await runHandler(baseConfig({ __id: 'tt0000014' }));
+      expect(mockSearch.mock.calls.length).toBe(afterCold);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

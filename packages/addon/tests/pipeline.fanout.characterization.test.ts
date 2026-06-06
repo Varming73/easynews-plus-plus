@@ -136,6 +136,7 @@ describe('fan-out merge/dedup/cap characterization', () => {
 
   afterEach(() => {
     delete process.env.TOTAL_MAX_RESULTS;
+    delete process.env.SEARCH_CONCURRENCY;
   });
 
   it('merges results across the parallel no-year + year searches and dedups by hash', async () => {
@@ -143,6 +144,18 @@ describe('fan-out merge/dedup/cap characterization', () => {
     const { streams } = await runHandler('tt0000020', baseConfig());
     expect(streams.map(markerOf).sort()).toEqual(['A', 'B', 'C']);
   });
+
+  // SEARCH_CONCURRENCY feeds a `for (i += N)` loop; 0 or a negative value would
+  // never advance and hang the handler. It must be clamped to >= 1. If this
+  // regresses, the test times out instead of completing.
+  it.each(['0', '-1', 'abc'])(
+    'does not hang and still returns results when SEARCH_CONCURRENCY=%s',
+    async value => {
+      process.env.SEARCH_CONCURRENCY = value;
+      const { streams } = await runHandler(`tt000003${value.length}`, baseConfig());
+      expect(streams.map(markerOf).sort()).toEqual(['A', 'B', 'C']);
+    }
+  );
 
   it('applies TOTAL_MAX_RESULTS in deterministic query order (first-seen wins)', async () => {
     // Cap of 1: processing happens in query order (no-year first → A before B/C),

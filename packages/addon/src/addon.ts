@@ -93,8 +93,8 @@ const DEFAULT_CONFIG = {
 const builder = new addonBuilder(manifest);
 
 // In-memory request cache to reduce API calls and improve response times
-const requestCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+const requestCache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL = 1000 * 60 * 30; // 30 minutes (default / maximum in-process TTL)
 
 // Negative-cache TTLs (seconds) for the protocol-level cacheMaxAge. Short, so a
 // newly-uploaded title or a recovered upstream error becomes visible soon, but
@@ -107,8 +107,7 @@ function getFromCache<T>(key: string): T | null {
   const cached = requestCache.get(key);
   if (!cached) return null;
 
-  const now = Date.now();
-  if (now - cached.timestamp > CACHE_TTL) {
+  if (Date.now() > cached.expiresAt) {
     requestCache.delete(key);
     return null;
   }
@@ -116,8 +115,17 @@ function getFromCache<T>(key: string): T | null {
   return cached.data as T;
 }
 
+// In-process TTL is per-entry: it honors the response's own cacheMaxAge (so a
+// short-lived negative-cache entry, e.g. an empty result at 10 min, isn't held
+// for the full 30 min), capped at CACHE_TTL so long-lived success responses
+// (cacheMaxAge up to a week) still don't linger in memory beyond 30 min.
 function setCache<T>(key: string, data: T): void {
-  requestCache.set(key, { data, timestamp: Date.now() });
+  const cacheMaxAge = (data as { cacheMaxAge?: number } | null)?.cacheMaxAge;
+  const ttl =
+    typeof cacheMaxAge === 'number' && cacheMaxAge > 0
+      ? Math.min(CACHE_TTL, cacheMaxAge * 1000)
+      : CACHE_TTL;
+  requestCache.set(key, { data, expiresAt: Date.now() + ttl });
 }
 
 // Load custom titles
@@ -379,76 +387,83 @@ builder.defineStreamHandler(
         return uniqueHashes.size;
       };
 
-      // Build the ordered list of search queries: every title variant WITHOUT
-      // the year first, then (if the year is known) every variant WITH the year.
-      // This is exactly the order the previous sequential implementation used, so
-      // that the downstream dedup-by-hash (first-seen wins) and the
-      // TOTAL_MAX_RESULTS cap select the same results regardless of which network
-      // request happens to finish first.
-      const searchQueries: string[] = [];
-      for (const titleVariant of allTitles) {
-        if (!titleVariant.trim()) continue;
-        searchQueries.push(
-          buildSearchQuery(type, { ...meta, name: titleVariant, year: undefined })
-        );
-      }
-      if (meta.year !== undefined) {
+      // Build the query lists: every title variant WITHOUT the year, then (if the
+      // year is known) every variant WITH the year. Kept as two phases so the
+      // no-year searches can satisfy TOTAL_MAX_RESULTS and skip the year phase
+      // entirely (the original early-exit behavior). Within each phase, queries
+      // are merged back in order so the downstream dedup-by-hash (first-seen wins)
+      // and the cap select the same results regardless of completion order.
+      const buildQueries = (withYear: boolean): string[] => {
+        const out: string[] = [];
         for (const titleVariant of allTitles) {
           if (!titleVariant.trim()) continue;
-          searchQueries.push(
-            buildSearchQuery(type, { ...meta, name: titleVariant, year: meta.year })
+          out.push(
+            buildSearchQuery(type, {
+              ...meta,
+              name: titleVariant,
+              year: withYear ? meta.year : undefined,
+            })
           );
         }
-      }
+        return out;
+      };
+      const noYearQueries = buildQueries(false);
+      const yearQueries = meta.year !== undefined ? buildQueries(true) : [];
+
+      // BOUNDED concurrency instead of one-at-a-time (the sequential fan-out was
+      // the dominant latency cost on a cache miss). Clamp to >= 1 so a misconfig
+      // (SEARCH_CONCURRENCY=0 or negative) can never stall the batch loop.
+      const SEARCH_CONCURRENCY = Math.max(1, parseIntEnv(process.env.SEARCH_CONCURRENCY, 5));
+
+      // Run one phase's queries in concurrency-bounded batches, merging results in
+      // query order and re-checking the early-exit threshold between batches.
+      // Throws on an auth error so the outer handler surfaces the auth-error
+      // stream (a single auth failure means every search would fail).
+      const runSearchPhase = async (queries: string[]): Promise<void> => {
+        for (let i = 0; i < queries.length; i += SEARCH_CONCURRENCY) {
+          if (totalFoundResults >= TOTAL_MAX_RESULTS) {
+            logger.debug(
+              `Already found ${totalFoundResults} unique results, skipping remaining searches`
+            );
+            return;
+          }
+
+          const batch = queries.slice(i, i + SEARCH_CONCURRENCY);
+          const settled = await Promise.allSettled(
+            batch.map(query => api.search({ ...sortOptions, query }))
+          );
+
+          for (let j = 0; j < settled.length; j++) {
+            const outcome = settled[j];
+            const query = batch[j];
+
+            if (outcome.status === 'rejected') {
+              if (isAuthError(outcome.reason)) throw outcome.reason;
+              logger.error(`Error searching for "${query}":`, outcome.reason);
+              continue;
+            }
+
+            const res = outcome.value;
+            const resultCount = res?.data?.length || 0;
+            logger.debug(`Found ${resultCount} results for "${query}"`);
+            if (resultCount > 0) {
+              allSearchResults.push({ query, result: res });
+            }
+          }
+
+          totalFoundResults = countTotalUniqueResults();
+          logger.debug(`Total unique results so far: ${totalFoundResults}`);
+        }
+      };
 
       logger.debug(
-        `Running ${searchQueries.length} searches for ${allTitles.length} title variants`
+        `Running ${noYearQueries.length} no-year + ${yearQueries.length} year searches for ${allTitles.length} title variants`
       );
 
-      // Run the searches with BOUNDED concurrency instead of one-at-a-time — the
-      // sequential fan-out was the dominant latency cost on a cache miss. Results
-      // are merged back in QUERY ORDER (not completion order) so selection stays
-      // deterministic, and the early-exit threshold is re-checked between batches
-      // (so we still stop once we have enough; may overshoot by up to one batch).
-      const SEARCH_CONCURRENCY = parseIntEnv(process.env.SEARCH_CONCURRENCY, 5);
-
-      for (let i = 0; i < searchQueries.length; i += SEARCH_CONCURRENCY) {
-        if (totalFoundResults >= TOTAL_MAX_RESULTS) {
-          logger.debug(
-            `Already found ${totalFoundResults} unique results, skipping remaining searches`
-          );
-          break;
-        }
-
-        const batch = searchQueries.slice(i, i + SEARCH_CONCURRENCY);
-        const settled = await Promise.allSettled(
-          batch.map(query => api.search({ ...sortOptions, query }))
-        );
-
-        // Merge in batch order to keep dedup/cap selection deterministic.
-        for (let j = 0; j < settled.length; j++) {
-          const outcome = settled[j];
-          const query = batch[j];
-
-          if (outcome.status === 'rejected') {
-            // A single auth failure means every search will fail — surface it.
-            if (isAuthError(outcome.reason)) {
-              return authErrorStream(config.preferredLanguage || '');
-            }
-            logger.error(`Error searching for "${query}":`, outcome.reason);
-            continue;
-          }
-
-          const res = outcome.value;
-          const resultCount = res?.data?.length || 0;
-          logger.debug(`Found ${resultCount} results for "${query}"`);
-          if (resultCount > 0) {
-            allSearchResults.push({ query, result: res });
-          }
-        }
-
-        totalFoundResults = countTotalUniqueResults();
-        logger.debug(`Total unique results so far: ${totalFoundResults}`);
+      // No-year phase first; only run the year phase if still under the cap.
+      await runSearchPhase(noYearQueries);
+      if (totalFoundResults < TOTAL_MAX_RESULTS) {
+        await runSearchPhase(yearQueries);
       }
 
       if (allSearchResults.length === 0) {
