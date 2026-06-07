@@ -1,6 +1,6 @@
 {
   "name": "easynews-plus-plus",
-  "version": "2.6.3",
+  "version": "2.7.0",
   "main": "dist/server.js",
   "scripts": {
     "test": "npm run test --workspaces",
@@ -21,9 +21,13 @@
     "stremio easynews addon",
     "stremio easynews"
   ],
-  "author": "panteLx",
+  "author": "Varming73 (https://github.com/Varming73)",
+  "contributors": [
+    "panteLx",
+    "Sleeyax"
+  ],
   "license": "MIT",
-  "description": "Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Join our community on Discord (discord.gg/Ma4SnagqwE) or contribute on GitHub (github.com/Varming73/easynews-pp)",
+  "description": "Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Contribute on GitHub (github.com/Varming73/easynews-plus-plus)",
   "workspaces": [
     "packages/*"
   ],
@@ -44,11 +48,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Varming73/easynews-pp.git"
+    "url": "git+https://github.com/Varming73/easynews-plus-plus.git"
   },
-  "homepage": "https://github.com/Varming73/easynews-pp",
+  "homepage": "https://github.com/Varming73/easynews-plus-plus",
   "bugs": {
-    "url": "https://github.com/Varming73/easynews-pp/issues"
+    "url": "https://github.com/Varming73/easynews-plus-plus/issues"
   },
   "files": [
     "dist/**/*",

@@ -3,31 +3,23 @@
 <div align="center">
 
 ![Easynews++ Logo](https://img.shields.io/badge/Easynews%2B%2B-Addon-blue?style=for-the-badge)
-![Version](https://img.shields.io/github/v/release/Varming73/easynews-pp?style=for-the-badge&label=Version)
-![Checks](https://img.shields.io/github/check-runs/Varming73/easynews-pp/main?style=for-the-badge&label=Checks)
-
-[![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Ma4SnagqwE)
-[![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Me%20A%20Coffee-orange?style=for-the-badge)](https://buymeacoffee.com/pantel)
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/pantelx)
+![Version](https://img.shields.io/github/v/release/Varming73/easynews-plus-plus?style=for-the-badge&label=Version)
+![Checks](https://img.shields.io/github/check-runs/Varming73/easynews-plus-plus/main?style=for-the-badge&label=Checks)
 
 </div>
 
-# Project discontinuation notice
+# About this fork
 
-**Important Notice:** As of June 2025, active development and maintenance of Easynews++ has been discontinued. While the project will remain available for use, no further updates, bug fixes, or support will be provided. Users are encouraged to explore alternative solutions for their Easynews needs. We thank the community for their support throughout the project's lifespan.
+**This is an actively maintained fork of [Easynews++](https://github.com/panteLx/easynews-plus-plus).** Upstream development by panteLx was discontinued in June 2025; this fork continues maintenance with ongoing bug fixes and improvements. It is community-maintained and is not affiliated with the original author or with Easynews.
 
 > [!NOTE]  
 > Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Built upon the foundation of Easynews+, it implements a different authentication approach to ensure seamless operation across various platforms including Stremio, Omni, Vidi and Fusion.
 
 ## 🔗 Quick Links
 
-**Public Instance:** [https://easynews-cloudflare-worker.jqrw92fchz.workers.dev/configure](https://easynews-cloudflare-worker.jqrw92fchz.workers.dev/configure) or [https://en.pantelx.com](https://en.pantelx.com)
-
-**Discord Server:** [Join our Discord](https://discord.gg/Ma4SnagqwE) for community discussions and support
+**Public Instance:** None — this fork has no official public instance. [Self-host it](#%EF%B8%8F-self-hosting-guide) using the guide below.
 
 **Self-Hosting:** [Check out the Self-Hosting Guide](#%EF%B8%8F-self-hosting-guide)
-
-**Support the Project:** [Buy Me A Coffee](https://buymeacoffee.com/pantel) or [Become a GitHub Sponsor](https://github.com/sponsors/pantelx)
 
 ---
 
@@ -134,7 +126,7 @@
   - webOS
 
 > [!NOTE]  
-> We are actively working on expanding platform support. If you encounter any issues with a specific platform, please report them in our [Discord community](https://discord.gg/Ma4SnagqwE) or create a new issue on GitHub.
+> We are actively working on expanding platform support. If you encounter any issues with a specific platform, please report them by creating a new issue on GitHub.
 
 ---
 
@@ -151,7 +143,7 @@ Deploy using Docker Compose for a containerized solution:
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
+$ git clone https://github.com/Varming73/easynews-plus-plus.git && cd easynews-plus-plus
 # Copy the .env.example file to .env
 $ cp .env.example .env
 # Start the container
@@ -163,7 +155,7 @@ The docker-compose.yml file is configured to use the pre-built image by default,
 Verify the installation by visiting `http://localhost:1337/` in your browser. To customize the port or other settings, edit the .env file before starting the container.
 
 > [!NOTE]  
-> The Docker image is automatically built and published to GitHub Container Registry (ghcr.io) for each push to the main branch and for each new version tag. You can find all available tags on the [GitHub Packages page](https://github.com/Varming73/easynews-pp/pkgs/container/easynews-plus-plus).
+> The Docker image is automatically built and published to GitHub Container Registry (ghcr.io) for each push to the main branch and for each new version tag. You can find all available tags on the [GitHub Packages page](https://github.com/Varming73/easynews-plus-plus/pkgs/container/easynews-plus-plus).
 
 ### 📦 Source Installation
 
@@ -178,7 +170,7 @@ $ node -v
 # Verify NPM version
 $ npm -v
 # Clone and install
-$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
+$ git clone https://github.com/Varming73/easynews-plus-plus.git && cd easynews-plus-plus
 $ npm i
 # Copy the .env.example file to .env
 $ cp .env.example .env
@@ -196,7 +188,7 @@ Deploy to Cloudflare's global edge network for optimal performance:
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
+$ git clone https://github.com/Varming73/easynews-plus-plus.git && cd easynews-plus-plus
 # Install dependencies
 $ npm i
 # Copy the .env.example file to .env
@@ -215,7 +207,7 @@ $ npm run preview:cf
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/Varming73/easynews-pp.git && cd easynews-pp
+$ git clone https://github.com/Varming73/easynews-plus-plus.git && cd easynews-plus-plus
 # Install dependencies
 $ npm i
 # Copy the .env.example file to .env
@@ -415,7 +407,7 @@ For maximum language prioritization effect, use the "Language First" sorting opt
 
 This makes it easier to find content in languages you understand without removing other options.
 
-If you need additional languages added to the public instance, please [create a new issue](https://github.com/Varming73/easynews-pp/issues/new) with your request.
+If you need additional languages added to the public instance, please [create a new issue](https://github.com/Varming73/easynews-plus-plus/issues/new) with your request.
 
 ### How is platform compatibility ensured?
 
@@ -432,20 +424,17 @@ This approach eliminates the platform-specific issues commonly found in other ad
 
 Your support helps maintain and improve this project! Consider:
 
-- [Buying me a coffee](https://buymeacoffee.com/pantel)
-- [Becoming a GitHub Sponsor](https://github.com/sponsors/pantelx)
-- Joining our [Discord community](https://discord.gg/Ma4SnagqwE) for support and updates
-- Contributing on [GitHub](https://github.com/Varming73/easynews-pp)
+- Contributing on [GitHub](https://github.com/Varming73/easynews-plus-plus)
 
 ## 🙏 Credits
 
 Special thanks to:
 
+- [panteLx/easynews-plus-plus](https://github.com/panteLx/easynews-plus-plus) for Easynews++, the upstream project this fork is based on
 - [sleeyax/stremio-easynews-addon](https://github.com/Sleeyax/stremio-easynews-addon) for the repository structure, base code and inspiration
 - [Viren070/AIOStreams](https://github.com/Viren070/AIOStreams) for the issue templates
 - All contributors who have contributed through code, testing and ideas
 - The community for their feedback, support and patience
-- Project supporters who have financially supported this initiative
 
 ## 📄 License
 
