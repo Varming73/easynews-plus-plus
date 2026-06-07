@@ -492,6 +492,15 @@ builder.defineStreamHandler(
       // Store all streams here
       let streams: Stream[] = [];
 
+      // Diagnostic counters so a "0 streams" outcome can be explained at a glance
+      // (e.g. distinguishing "nothing matched the title" from the common case where
+      // every indexed file is a short sample and the real release is posted only as
+      // packed/password-protected RAR archives, which the VIDEO-only search excludes).
+      let totalFilesSeen = 0;
+      let rejectedSample = 0;
+      let rejectedDuplicate = 0;
+      let rejectedTitle = 0;
+
       // Apply global limit across all search results
       logger.debug(`Global stream limit: ${TOTAL_MAX_RESULTS} results across all searches`);
 
@@ -515,7 +524,15 @@ builder.defineStreamHandler(
           const title = getPostTitle(file);
           const fileHash = file['0']; // Use file hash to detect duplicates
 
-          if (isBadVideo(file) || processedHashes.has(fileHash)) {
+          totalFilesSeen++;
+          // Evaluate isBadVideo first (it also emits its own per-file debug log),
+          // matching the previous short-circuit order, then the duplicate check.
+          if (isBadVideo(file)) {
+            rejectedSample++;
+            continue;
+          }
+          if (processedHashes.has(fileHash)) {
+            rejectedDuplicate++;
             continue;
           }
 
@@ -547,6 +564,7 @@ builder.defineStreamHandler(
             // Use strictTitleMatching setting if enabled for series
             if (!queries.some(q => matchesTitle(title, q, useStrictMatching))) {
               logger.debug(`Rejected series by title matching: "${title}"`);
+              rejectedTitle++;
               continue;
             }
           }
@@ -564,6 +582,7 @@ builder.defineStreamHandler(
 
           if (!matchesAnyVariant) {
             logger.debug(`Rejected ${type} by title matching: "${title}"`);
+            rejectedTitle++;
             continue;
           }
 
@@ -588,6 +607,9 @@ builder.defineStreamHandler(
           );
         }
       }
+
+      // Streams that matched title + passed isBadVideo, before quality/size filters.
+      const matchedBeforeFilters = streams.length;
 
       // Sort the streams ONCE, by user preference, using the per-stream metadata
       // precomputed in mapStream (`_sort`) — no per-comparison string parsing.
@@ -823,7 +845,28 @@ builder.defineStreamHandler(
 
         logger.info(`Found ${streams.length} streams total for ${id} (${qualitySummaryStr})`);
       } else {
-        logger.info(`Found 0 streams total for ${id}`);
+        // Explain the empty result so the common "sample-only" case is recognizable
+        // at a glance rather than inferred from many per-file rejection lines.
+        const parts: string[] = [];
+        if (rejectedSample) parts.push(`${rejectedSample} sample/too-short`);
+        if (rejectedTitle) parts.push(`${rejectedTitle} title-mismatch`);
+        if (rejectedDuplicate) parts.push(`${rejectedDuplicate} duplicate`);
+        if (matchedBeforeFilters) parts.push(`${matchedBeforeFilters} dropped by quality/size filters`);
+        const breakdown = totalFilesSeen
+          ? `: ${totalFilesSeen} video file(s) found, all rejected (${parts.join(', ')})`
+          : '';
+        logger.info(`Found 0 streams total for ${id}${breakdown}`);
+
+        // Pure sample-only outcome (every indexed video was a short sample, nothing
+        // dropped by title or filters): the full release almost certainly exists but
+        // is posted only as packed/password-protected RAR archives, which the
+        // VIDEO-only search excludes and which are not directly streamable.
+        if (totalFilesSeen > 0 && matchedBeforeFilters === 0 && rejectedSample > 0 && rejectedTitle === 0) {
+          logger.info(
+            `Only sample files indexed for ${id} — the full release is likely posted only as ` +
+              `packed/password-protected RAR archives, which are not directly streamable.`
+          );
+        }
       }
 
       // Remove the internal sort metadata before caching/returning so it is
