@@ -255,7 +255,7 @@ export const translations: Translations = {
       configCopied: 'Copied!',
       version: 'Version',
       description:
-        'Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Contribute on <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Open-source Easynews addon for Stremio and compatible apps (Omni, Vidi, Fusion, Nuvio). It searches Easynews and returns playable streams, with smart title matching, quality sorting, language filtering and self-hosting. Contribute on <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Username',
@@ -314,7 +314,7 @@ export const translations: Translations = {
       configCopied: 'Kopiert!',
       version: 'Version',
       description:
-        'Easynews++ ist ein Open-Source-Addon, das die Easynews-Erfahrung mit überlegener Leistung, erweiterten Suchfunktionen und intelligenter Stream-Auswahl verbessert. Es bietet benutzerdefinierte Titelunterstützung, Multi-Plattform-Kompatibilität und Self-Hosting-Optionen. Trage auf <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a> bei.',
+        'Open-Source-Easynews-Addon für Stremio und kompatible Apps (Omni, Vidi, Fusion, Nuvio). Es durchsucht Easynews und liefert abspielbare Streams – mit intelligentem Titelabgleich, Sortierung nach Qualität, Sprachfilterung und Self-Hosting. Trage auf <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a> bei.',
     },
     form: {
       username: 'Benutzername',
@@ -373,7 +373,7 @@ export const translations: Translations = {
       configCopied: '¡Copiado!',
       version: 'Versión',
       description:
-        'Easynews++ es un complemento de código abierto que mejora la experiencia de Easynews con un rendimiento superior, capacidades de búsqueda avanzadas y selección inteligente de transmisiones. Cuenta con soporte de títulos personalizados, compatibilidad multiplataforma y opciones de alojamiento propio. Contribuya en <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Complemento de código abierto de Easynews para Stremio y aplicaciones compatibles (Omni, Vidi, Fusion, Nuvio). Busca en Easynews y devuelve streams reproducibles, con coincidencia inteligente de títulos, ordenación por calidad, filtrado por idioma y alojamiento propio. Contribuye en <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Nombre de usuario',
@@ -432,7 +432,7 @@ export const translations: Translations = {
       configCopied: 'Copié !',
       version: 'Version',
       description:
-        "Easynews++ est un addon open-source qui améliore l'expérience Easynews avec des performances supérieures, des capacités de recherche avancées et une sélection intelligente des flux. Il propose le support de titres personnalisés, la compatibilité multi-plateformes et des options d'auto-hébergement. Contribuez sur <a href='https://github.com/Varming73/easynews-plus-plus'>GitHub</a>.",
+        "Addon Easynews open-source pour Stremio et les applications compatibles (Omni, Vidi, Fusion, Nuvio). Il recherche sur Easynews et renvoie des flux lisibles, avec correspondance intelligente des titres, tri par qualité, filtrage par langue et auto-hébergement. Contribuez sur <a href='https://github.com/Varming73/easynews-plus-plus'>GitHub</a>.",
     },
     form: {
       username: "Nom d'utilisateur",
@@ -491,7 +491,7 @@ export const translations: Translations = {
       configCopied: 'Copiato!',
       version: 'Versione',
       description:
-        "Easynews++ è un addon open-source che migliora l'esperienza di Easynews con prestazioni superiori, funzionalità di ricerca avanzate e selezione intelligente dei flussi. Include supporto per titoli personalizzati, compatibilità multi-piattaforma e opzioni di self-hosting. Contribuisci su <a href='https://github.com/Varming73/easynews-plus-plus'>GitHub</a>.",
+        "Addon Easynews open-source per Stremio e app compatibili (Omni, Vidi, Fusion, Nuvio). Cerca su Easynews e restituisce stream riproducibili, con corrispondenza intelligente dei titoli, ordinamento per qualità, filtro per lingua e self-hosting. Contribuisci su <a href='https://github.com/Varming73/easynews-plus-plus'>GitHub</a>.",
     },
     form: {
       username: 'Nome utente',
@@ -550,7 +550,7 @@ export const translations: Translations = {
       configCopied: 'コピーしました！',
       version: 'バージョン',
       description:
-        'Easynews++は、優れたパフォーマンス、高度な検索機能、インテリジェントなストリーム選択でEasynewsの体験を向上させるオープンソースアドオンです。カスタムタイトルのサポート、マルチプラットフォームの互換性、セルフホスティングオプションを備えています。<a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>で貢献してください。',
+        'Stremio や互換アプリ（Omni、Vidi、Fusion、Nuvio）向けのオープンソース Easynews アドオンです。Easynews を検索して再生可能なストリームを返し、スマートなタイトル照合、画質での並べ替え、言語フィルター、セルフホスティングに対応しています。<a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>で貢献してください。',
     },
     form: {
       username: 'ユーザー名',
@@ -609,7 +609,7 @@ export const translations: Translations = {
       configCopied: 'Copiado!',
       version: 'Versão',
       description:
-        'Easynews++ é um addon de código aberto que melhora a experiência do Easynews com desempenho superior, recursos de pesquisa avançados e seleção inteligente de streams. Ele oferece suporte a títulos personalizados, compatibilidade multiplataforma e opções de hospedagem própria. Contribua no <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Addon de código aberto do Easynews para Stremio e aplicativos compatíveis (Omni, Vidi, Fusion, Nuvio). Pesquisa no Easynews e retorna streams reproduzíveis, com correspondência inteligente de títulos, ordenação por qualidade, filtragem por idioma e hospedagem própria. Contribua no <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Nome de usuário',
@@ -668,7 +668,7 @@ export const translations: Translations = {
       configCopied: 'Скопировано!',
       version: 'Версия',
       description:
-        'Easynews++ — это дополнение с открытым исходным кодом, которое улучшает работу с Easynews благодаря превосходной производительности, расширенным возможностям поиска и интеллектуальному выбору потоков. Оно имеет поддержку пользовательских заголовков, совместимость с несколькими платформами и возможности самостоятельного размещения. Вносите вклад на <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Дополнение Easynews с открытым исходным кодом для Stremio и совместимых приложений (Omni, Vidi, Fusion, Nuvio). Оно ищет в Easynews и возвращает воспроизводимые потоки — с умным сопоставлением названий, сортировкой по качеству, фильтрацией по языку и возможностью самостоятельного размещения. Вносите вклад на <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Имя пользователя',
@@ -727,7 +727,7 @@ export const translations: Translations = {
       configCopied: '복사됨!',
       version: '버전',
       description:
-        'Easynews++는 뛰어난 성능, 고급 검색 기능 및 지능형 스트림 선택으로 Easynews 경험을 향상시키는 오픈 소스 애드온입니다. 사용자 정의 제목 지원, 다중 플랫폼 호환성 및 자체 호스팅 옵션을 제공합니다. <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>에서 기여하세요.',
+        'Stremio 및 호환 앱(Omni, Vidi, Fusion, Nuvio)을 위한 오픈 소스 Easynews 애드온입니다. Easynews를 검색하여 재생 가능한 스트림을 반환하며, 스마트한 제목 매칭, 화질 정렬, 언어 필터링, 자체 호스팅을 지원합니다. <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>에서 기여하세요.',
     },
     form: {
       username: '사용자 이름',
@@ -786,7 +786,7 @@ export const translations: Translations = {
       configCopied: '已复制!',
       version: '版本',
       description:
-        'Easynews++是一个开源插件，通过卓越的性能、高级搜索功能和智能流选择增强Easynews体验。它具有自定义标题支持、多平台兼容性和自托管选项。在<a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>上贡献。',
+        '适用于 Stremio 及兼容应用（Omni、Vidi、Fusion、Nuvio）的开源 Easynews 插件。它搜索 Easynews 并返回可播放的流，支持智能标题匹配、按画质排序、语言筛选和自托管。在 <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a> 上贡献。',
     },
     form: {
       username: '用户名',
@@ -841,7 +841,7 @@ export const translations: Translations = {
       configCopied: 'Gekopieerd!',
       version: 'Versie',
       description:
-        'Easynews++ is een open-source addon dat de ervaring van Easynews verbetert met een betere prestaties, geavanceerde zoekmogelijkheden en intelligente streamselectie. Het biedt ondersteuning voor aangepaste titels, multi-platformcompatibiliteit en zelfhostingopties. Help ons op <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Open-source Easynews-addon voor Stremio en compatibele apps (Omni, Vidi, Fusion, Nuvio). Het doorzoekt Easynews en levert afspeelbare streams, met slimme titelmatching, sorteren op kwaliteit, taalfiltering en zelfhosting. Draag bij op <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Gebruikersnaam',
@@ -900,7 +900,7 @@ export const translations: Translations = {
       configCopied: 'Copiat!',
       version: 'Versiune',
       description:
-        'Easynews++ este un addon open-source care îmbunătățește experiența Easynews cu performanțe superioare, funcții avansate de căutare și selecție inteligentă de fluxuri. Acesta oferă suport pentru titluri personalizate, compatibilitate multiplatform și opțiuni de auto-hosting. Contribuiți la <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Addon Easynews open-source pentru Stremio și aplicații compatibile (Omni, Vidi, Fusion, Nuvio). Caută pe Easynews și returnează fluxuri redabile, cu potrivire inteligentă a titlurilor, sortare după calitate, filtrare după limbă și auto-găzduire. Contribuiți pe <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Nume utilizator',
@@ -959,7 +959,7 @@ export const translations: Translations = {
       configCopied: 'Конфигурацията е копирана!',
       version: 'Версия',
       description:
-        'Easynews++ е добавка с отворен код, която подобрява работата с Easynews с по-добра производителност, разширени възможности за търсене и интелигентен избор на поток. Той включва поддръжка на персонализирани заглавия, мултиплатформена съвместимост и опции за самостоятелно хостване. Допринасяйте в <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
+        'Easynews добавка с отворен код за Stremio и съвместими приложения (Omni, Vidi, Fusion, Nuvio). Търси в Easynews и връща възпроизводими потоци – с интелигентно съпоставяне на заглавия, сортиране по качество, филтриране по език и самостоятелно хостване. Допринасяйте в <a href="https://github.com/Varming73/easynews-plus-plus">GitHub</a>.',
     },
     form: {
       username: 'Потребителско име',
