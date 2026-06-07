@@ -55,6 +55,13 @@ COPY --from=builder /build/custom-titles.json ./custom-titles.json
 
 COPY --from=builder /build/node_modules ./node_modules
 
+# npm does not hoist every dependency to the root node_modules: the addon's
+# express 5 subtree is nested under packages/addon/node_modules (a conflicting
+# transitive version is hoisted to root, forcing express to nest). Copy the
+# workspace-level node_modules too, or `import 'express'` fails at runtime with
+# ERR_MODULE_NOT_FOUND.
+COPY --from=builder /build/packages/addon/node_modules ./packages/addon/node_modules
+
 # Run as the unprivileged 'node' user (present in the official node images)
 # rather than root. The app only reads its files and binds a high port.
 USER node
