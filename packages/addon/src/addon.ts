@@ -95,6 +95,9 @@ const builder = new addonBuilder(manifest);
 // In-memory request cache to reduce API calls and improve response times
 const requestCache = new Map<string, { data: any; expiresAt: number }>();
 const CACHE_TTL = 1000 * 60 * 30; // 30 minutes (default / maximum in-process TTL)
+// Hard cap on entries so a public/multi-user instance can't grow the cache
+// unboundedly between TTL sweeps. Mirrors the api-level cache; same env knob.
+const MAX_CACHE_ENTRIES = Number(process.env.MAX_CACHE_ENTRIES) || 1000;
 
 // Negative-cache TTLs (seconds) for the protocol-level cacheMaxAge. Short, so a
 // newly-uploaded title or a recovered upstream error becomes visible soon, but
@@ -126,6 +129,15 @@ function setCache<T>(key: string, data: T): void {
       ? Math.min(CACHE_TTL, cacheMaxAge * 1000)
       : CACHE_TTL;
   requestCache.set(key, { data, expiresAt: Date.now() + ttl });
+
+  // Bound memory: Map preserves insertion order, so deleting the first key
+  // evicts the oldest entry. TTL expiry is lazy (only on read), so without this
+  // a flood of unique keys could grow the Map until entries expire.
+  while (requestCache.size > MAX_CACHE_ENTRIES) {
+    const oldest = requestCache.keys().next().value;
+    if (oldest === undefined) break;
+    requestCache.delete(oldest);
+  }
 }
 
 // Load custom titles
