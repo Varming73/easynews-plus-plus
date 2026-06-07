@@ -25,6 +25,3 @@ META_FETCH_TIMEOUT_MS = "5000" # Timeout (ms) for metadata lookups (IMDb / Cinem
 MAX_CACHE_ENTRIES = "1000" # Max entries kept in the in-memory search-results cache
 RESOLVE_CACHE_TTL_SECONDS = "300" # How long the /resolve proxy reuses a resolved CDN URL (seconds)
 TMDB_API_KEY = "" # Add encrypted value to your Cloudflare worker instance
-CHATWOOT_ENABLED = "false"
-CHATWOOT_BASE_URL= ""
-CHATWOOT_WEBSITE_TOKEN = "" # Add encrypted value to your Cloudflare worker instance

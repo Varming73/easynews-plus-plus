@@ -282,11 +282,7 @@ You can configure the addon server using environment variables:
    - `RESOLVE_CACHE_TTL_SECONDS`: How long the `/resolve` proxy reuses a resolved CDN URL, in seconds (default `300`). Applies to both the self-hosted server and the Cloudflare Worker.
 6. **TMDB Integration**:
    - `TMDB_API_KEY`: TMDB API key for translated title search
-7. **Chatwoot Live Support Chat Settings**:
-   - `CHATWOOT_ENABLED`: Enable or disable Chatwoot integration
-   - `CHATWOOT_BASE_URL`: Base URL for the Chatwoot installation
-   - `CHATWOOT_WEBSITE_TOKEN`: Website token for Chatwoot authentication
-8. **Streaming / Security**:
+7. **Streaming / Security**:
    - `ADDON_BASE_URL`: Public origin of this addon (e.g. `https://your-addon.example.com`).
      Stream URLs are routed through the addon's `/resolve` proxy so your Easynews
      credentials are never embedded in the URL handed to the player. Installs created
