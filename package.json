@@ -27,7 +27,7 @@
     "Sleeyax"
   ],
   "license": "MIT",
-  "description": "Easynews++ is an open-source addon that enhances the Easynews experience with superior performance, advanced search capabilities, and intelligent stream selection. It features custom title support, multi-platform compatibility, and self-hosting options. Contribute on GitHub (github.com/Varming73/easynews-plus-plus)",
+  "description": "Open-source Easynews addon for Stremio and compatible clients (Omni, Vidi, Fusion, Nuvio) — searches Easynews and returns playable streams with smart title matching, quality sorting, language filtering and self-hosting.",
   "workspaces": [
     "packages/*"
   ],
