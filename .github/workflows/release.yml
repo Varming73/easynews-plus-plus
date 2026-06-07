@@ -36,6 +36,8 @@ jobs:
     needs: test
     name: Github Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # allow changelogithub to create the GitHub Release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
