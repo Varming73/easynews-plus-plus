@@ -1,24 +1,13 @@
 import * as fsModule from 'fs';
 import express, { Request, Response, NextFunction } from 'express';
 import type { AddonInterface } from '@stremio-addon/sdk';
-// follow-redirects is CommonJS; under ESM it must be default-imported, then destructured
-import followRedirects from 'follow-redirects';
-const { http, https } = followRedirects;
-import { IncomingMessage } from 'http';
 import path from 'path';
 import { getRouter } from '@stremio-addon/node-express';
 import customTemplate from './custom-template.js';
 import { addonInterface } from './addon.js';
-import { URL } from 'url';
 import { createLogger, getVersion } from 'easynews-plus-plus-shared';
 import { sanitizeUiLanguage } from './i18n/index.js';
-import {
-  parseResolvePayload,
-  ResolveError,
-  stripAuthOnForeignHost,
-  getCachedResolvedUrl,
-  setCachedResolvedUrl,
-} from './resolve.js';
+import { createResolveHandler } from './resolve-express.js';
 
 // Create a logger with server prefix and explicitly set the level from environment variable
 export const logger = createLogger({
@@ -111,93 +100,9 @@ function serveHTTP(addonInterface: AddonInterface, opts: ServerOptions = {}) {
     }
   });
 
-  // Resolve endpoint for stream requests
-  app.get('/resolve/:payload/:filename', async (req: Request, res: Response) => {
-    const payload = req.params.payload as string;
-
-    // Serve a recently-resolved CDN URL without re-hitting Easynews (see the
-    // cache rationale in ./resolve.ts). Still 307 so the player behaves the same.
-    const cachedUrl = getCachedResolvedUrl(payload);
-    if (cachedUrl) {
-      res.redirect(307, cachedUrl);
-      return;
-    }
-
-    // Decode + validate the payload and strip credentials into a Basic auth
-    // header (shared with the Cloudflare worker, see ./resolve.ts).
-    let cleanUrl: string;
-    let authHeader: string;
-    try {
-      ({ cleanUrl, authHeader } = parseResolvePayload(payload));
-    } catch (err) {
-      if (err instanceof ResolveError) {
-        res.status(err.status).send(err.message);
-        return;
-      }
-      res.status(400).send('Invalid request');
-      return;
-    }
-
-    // Choose the correct client
-    const client = cleanUrl.startsWith('https:') ? https : http;
-    const originalHost = new URL(cleanUrl).hostname;
-
-    // follow-redirects supports maxRedirects/beforeRedirect at runtime but its
-    // bundled types omit them; widen the options type locally.
-    const requestOptions: import('http').RequestOptions & {
-      maxRedirects?: number;
-      beforeRedirect?: (options: {
-        hostname?: string;
-        host?: string;
-        headers?: Record<string, string | undefined>;
-      }) => void;
-    } = {
-      method: 'GET',
-      headers: {
-        Authorization: authHeader,
-        Range: 'bytes=0-0', // only fetch first byte
-      },
-      maxRedirects: 5,
-      // Abort a hung Easynews connection instead of holding the socket open
-      // indefinitely (mirrors the 20s timeout on the search request in api.ts).
-      timeout: 20_000,
-      // Strip the Authorization header on any cross-host hop so the user's
-      // Easynews credentials are never forwarded off easynews.com.
-      beforeRedirect: stripAuthOnForeignHost(originalHost),
-    };
-
-    // GET-only request with Range header to follow redirects and get final URL.
-    const request = client.request(
-      cleanUrl,
-      requestOptions,
-      // Redirect client to the real CDN URL
-      (upstream: IncomingMessage & { responseUrl?: string }) => {
-        const finalUrl = upstream.responseUrl || cleanUrl;
-        // Only cache when an actual redirect to a different URL occurred (i.e. the
-        // tokenized, self-authorizing CDN URL). follow-redirects sets responseUrl
-        // even when NO redirect happened, in which case it equals cleanUrl — the
-        // credential-stripped members URL that would 401 on its own. Caching that
-        // would amplify failures, and it matches the Worker (caches Location only).
-        if (finalUrl !== cleanUrl) setCachedResolvedUrl(payload, finalUrl);
-        res.redirect(307, finalUrl);
-      }
-    );
-
-    // The 'timeout' event fires but does not abort on its own — destroy the
-    // request so it doesn't hang, and respond 504.
-    request.on('timeout', () => {
-      logger.error(`Timed out resolving stream ${cleanUrl}`);
-      request.destroy(new Error('resolve timeout'));
-      if (!res.headersSent) res.status(504).send('Timed out resolving stream');
-    });
-
-    request.on('error', (err: Error) => {
-      logger.error(`Error resolving stream ${cleanUrl}:`, err);
-      if (!res.headersSent) res.status(502).send('Error resolving stream');
-    });
-
-    request.end();
-  });
+  // Resolve endpoint for stream requests (extracted to ./resolve-express.ts so
+  // it can be unit-tested without importing this self-starting module).
+  app.get('/resolve/:payload/:filename', createResolveHandler({ logger }));
 
   if (hasConfig)
     app.get('/configure', (req: Request, res: Response) => {
