@@ -7,7 +7,7 @@ services:
     # image: easynews-plus-plus
 
     # Or use the pre-built image from GitHub Container Registry
-    image: ghcr.io/varming73/easynews-plus-plus:latest # this fork's image; pin a tag (e.g. :2.7.0) for reproducible deploys
+    image: ghcr.io/varming73/easynews-plus-plus:latest # this fork's image; pin a tag (e.g. :2.7.1) for reproducible deploys
 
     container_name: easynews-plus-plus
     ports:
