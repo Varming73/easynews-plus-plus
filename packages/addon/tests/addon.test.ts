@@ -29,6 +29,7 @@ vi.mock('../src/utils', () => ({
   logError: vi.fn(),
   matchesTitle: vi.fn().mockReturnValue(true),
   getAlternativeTitles: vi.fn().mockReturnValue(['Alternative Title']),
+  getNordicTransliterations: vi.fn().mockReturnValue([]),
   isAuthError: vi.fn().mockReturnValue(false),
 }));
 

@@ -13,6 +13,7 @@ import {
   getDuration,
   getSize,
   getAlternativeTitles,
+  getNordicTransliterations,
   buildSearchQuery,
 } from '../src/utils';
 import { FileData } from 'easynews-plus-plus-api';
@@ -58,8 +59,33 @@ describe('sanitizeTitle', () => {
     ['Star Wars: Episode IV - A New Hope', 'star wars episode iv a new hope'],
     ['Breaking Bad: S01E01', 'breaking bad s01e01'],
     ['The 100 (TV Series)', 'the 100  tv series'],
+    // Scandinavian letters normalize to the digraph convention
+    ['Slangedræber', 'slangedraeber'],
+    ['Slangedraeber', 'slangedraeber'],
+    ['Rødby', 'roedby'],
+    ['Kådisbellan', 'kaadisbellan'],
+    ['ÆØÅ', 'aeoeaa'],
   ])("sanitizes the title '%s'", (input, expected) => {
     expect(sanitizeTitle(input)).toBe(expected);
+  });
+});
+
+describe('getNordicTransliterations', () => {
+  it('returns the ASCII spelling for an æ title', () => {
+    expect(getNordicTransliterations('Slangedræber')).toEqual(['Slangedraeber']);
+  });
+
+  it('returns both digraph and bare-vowel spellings for ø/å', () => {
+    expect(getNordicTransliterations('Rødby')).toEqual(['Roedby', 'Rodby']);
+    expect(getNordicTransliterations('Kåre')).toEqual(['Kaare', 'Kare']);
+  });
+
+  it('preserves uppercase letters', () => {
+    expect(getNordicTransliterations('Ørnen')).toEqual(['Oernen', 'Ornen']);
+  });
+
+  it('returns an empty array when there are no Scandinavian letters', () => {
+    expect(getNordicTransliterations('Snake Killer')).toEqual([]);
   });
 });
 
@@ -86,6 +112,9 @@ describe('matchesTitle', () => {
     ['Breaking Bad S01E01 1080p WEB-DL', 'breaking bad s01e01', true],
     ['Stranger Things 4K HDR', 'stranger things', true],
     ['Interstellar (2014) 1080p', 'interstellar 2014', true],
+    // Scandinavian letters: an "ae" release matches an "æ" query and vice versa
+    ['Slangedraeber S01E01 1080p', 'Slangedræber S01E01', true],
+    ['Slangedræber S01E01 1080p', 'Slangedraeber S01E01', true],
   ])("matches the title '%s' with query '%s'", (title, query, expected) => {
     expect(matchesTitle(title, query, false)).toBe(expected);
   });

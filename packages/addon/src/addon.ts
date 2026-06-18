@@ -14,6 +14,7 @@ import {
   logError,
   matchesTitle,
   getAlternativeTitles,
+  getNordicTransliterations,
   isAuthError,
   MissingBaseUrlError,
 } from './utils.js';
@@ -373,6 +374,22 @@ builder.defineStreamHandler(
       if (additionalTitles.length > 0) {
         logger.debug(`Adding ${additionalTitles.length} additional titles from partial matches`);
         allTitles = [...allTitles, ...additionalTitles];
+      }
+
+      // Titles with Scandinavian letters (æ/ø/å) won't match their ASCII release
+      // spellings (e.g. "Slangedræber" vs "Slangedraeber") — and, crucially,
+      // Easynews search won't even return those posts unless we query the ASCII
+      // form. Add transliterated spellings as extra search variants.
+      const nordicVariants = allTitles
+        .flatMap(title => getNordicTransliterations(title))
+        .filter(
+          (variant, index, self) => !allTitles.includes(variant) && self.indexOf(variant) === index
+        );
+      if (nordicVariants.length > 0) {
+        logger.debug(
+          `Adding ${nordicVariants.length} Scandinavian transliteration variants: ${nordicVariants.join(', ')}`
+        );
+        allTitles = [...allTitles, ...nordicVariants];
       }
 
       logger.debug(`Will search for ${allTitles.length} titles: ${allTitles.join(', ')}`);

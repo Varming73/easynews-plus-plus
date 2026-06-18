@@ -102,6 +102,17 @@ export function sanitizeTitle(title: string) {
     .replace(/Ä/g, 'Ae')
     .replace(/Ö/g, 'Oe')
     .replace(/Ü/g, 'Ue')
+    // Scandinavian letters: normalize to the digraph convention so an "æ" title
+    // and its "ae" release spelling compare equal (e.g. Slangedræber ↔
+    // Slangedraeber). Release names also use the bare-vowel convention (ø→o,
+    // å→a); those alternate spellings are covered by getNordicTransliterations,
+    // which feeds them in as extra SEARCH variants.
+    .replace(/æ/g, 'ae')
+    .replace(/ø/g, 'oe')
+    .replace(/å/g, 'aa')
+    .replace(/Æ/g, 'Ae')
+    .replace(/Ø/g, 'Oe')
+    .replace(/Å/g, 'Aa')
     // replace common symbols with words
     .replaceAll('&', 'and')
     // replace common separators (., _, -, whitespace) with a single space
@@ -115,6 +126,39 @@ export function sanitizeTitle(title: string) {
     .trim();
   // logger.debug(`Sanitized result: "${result}"`);
   return result;
+}
+
+/**
+ * Generate plausible ASCII spellings of a title containing Scandinavian letters
+ * (æ/ø/å), for use as additional Easynews SEARCH variants.
+ *
+ * The matcher in {@link sanitizeTitle} normalizes to a single (digraph)
+ * convention, but that alone is not enough: Easynews full-text search will not
+ * return a post named "Slangedraeber" when we query the literal "Slangedræber",
+ * so the differently-spelled posts are never retrieved. Releases also disagree
+ * on the convention — "ø" appears as both "oe" and "o", "å" as both "aa" and
+ * "a" — so we emit both forms and let any of them match.
+ *
+ * @returns Transliterated variants that differ from the input (empty if the
+ *          title contains no Scandinavian letters).
+ */
+export function getNordicTransliterations(title: string): string[] {
+  // Each map is applied as a complete set to produce one variant spelling.
+  const conventions: Array<Record<string, string>> = [
+    // Digraph convention: æ→ae, ø→oe, å→aa
+    { æ: 'ae', Æ: 'Ae', ø: 'oe', Ø: 'Oe', å: 'aa', Å: 'Aa' },
+    // Bare-vowel convention: æ→ae, ø→o, å→a
+    { æ: 'ae', Æ: 'Ae', ø: 'o', Ø: 'O', å: 'a', Å: 'A' },
+  ];
+
+  const variants: string[] = [];
+  for (const map of conventions) {
+    const transliterated = title.replace(/[æÆøØåÅ]/g, ch => map[ch] ?? ch);
+    if (transliterated !== title && !variants.includes(transliterated)) {
+      variants.push(transliterated);
+    }
+  }
+  return variants;
 }
 
 /**
