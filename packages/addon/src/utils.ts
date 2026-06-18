@@ -162,6 +162,17 @@ export function getNordicTransliterations(title: string): string[] {
 }
 
 /**
+ * Whole-word membership test for non-strict matching: returns true only if
+ * `word` appears as a complete word in `text` (so "killer" does NOT match
+ * "killers"). Both arguments are expected to be {@link sanitizeTitle} output
+ * (lowercased, space-separated, punctuation already collapsed).
+ */
+function wordInText(word: string, text: string): boolean {
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`).test(text);
+}
+
+/**
  * Improved title matching with more accurate results
  * @param title The content title to check
  * @param query The search query to match against
@@ -348,10 +359,22 @@ export function matchesTitle(title: string, query: string, strict: boolean) {
         return true;
       }
 
-      const matchingNameWords = nameWords.filter(word => sanitizedTitle.includes(word)).length;
+      // Compare the query's show-name words against the candidate's PARSED show
+      // title (via parse-torrent-title), not the raw filename. The parser strips
+      // the episode subtitle, release group and quality tags, so a query word
+      // that only appears in those (e.g. "snake" inside the group "-SNAKE", or a
+      // common word sitting in an episode subtitle) no longer produces a false
+      // match. Whole-word matching additionally stops "killer" matching
+      // "killers". Falls back to the sanitized filename when the parser can't
+      // extract a title. (Strict mode and the non-episode paths are unchanged.)
+      const parsedCandidateTitle = parseTorrentTitle(title)?.title;
+      const nameHaystack = parsedCandidateTitle
+        ? sanitizeTitle(parsedCandidateTitle)
+        : sanitizedTitle;
+      const matchingNameWords = nameWords.filter(word => wordInText(word, nameHaystack)).length;
       const nameRatio = matchingNameWords / nameWords.length;
       logger.debug(
-        `Non-strict mode - episode "${pattern}" present, name overlap ${nameRatio.toFixed(2)} (${matchingNameWords}/${nameWords.length})`
+        `Non-strict mode - episode "${pattern}" present, name overlap ${nameRatio.toFixed(2)} (${matchingNameWords}/${nameWords.length}) against parsed title "${nameHaystack}"`
       );
       return nameRatio >= 0.7;
     }
