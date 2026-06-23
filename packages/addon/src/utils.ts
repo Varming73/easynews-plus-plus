@@ -88,6 +88,51 @@ export function isBadVideo(file: FileData) {
 }
 
 /**
+ * Adult-content tokens that appear in Easynews source-newsgroup names. Matched
+ * against {@link FileData} field '9' (the space-separated list of groups a post
+ * was found in). Because porn is almost always cross-posted to an explicitly
+ * adult group even when it also lands in a neutral one, matching ANY token in
+ * the combined string catches the large majority of it.
+ *
+ * The token set is deliberately conservative — only segments that are
+ * unambiguously adult in newsgroup names, so the filter is effectively
+ * false-positive-free against legitimate content (verified: no group holding a
+ * real show ever matched). Notably EXCLUDED are "gay" and "teen" — both occur in
+ * legitimate content (LGBTQ film/TV; teen dramas) and the porn that uses them is
+ * already cross-posted to an erotica/sex group and caught anyway. The residual
+ * porn in purely neutral-named groups (e.g. Dutch alt.binaries.ijsklontje) is
+ * handled by the title-matching layer, not here.
+ */
+const ADULT_GROUP_RE =
+  /(erotic|xxx|porn|pron|masturbat|bestial|incest|hentai|shemale|transsex|(?:^|\.)sex)/i;
+
+/**
+ * Whether an Easynews post's source newsgroup(s) indicate adult content.
+ * @param group The raw value of {@link FileData} field '9' (may list several
+ *              groups separated by spaces). Falsy input is treated as not-adult.
+ */
+export function isAdultGroup(group: string | null | undefined): boolean {
+  if (!group) return false;
+  return ADULT_GROUP_RE.test(group);
+}
+
+/**
+ * Whether a search query is "anchored" to a specific episode or year — i.e. it
+ * carries an SxxExx code or a 19xx/20xx year.
+ *
+ * Unanchored queries (a bare title) are inherently low-precision: when a foreign
+ * title's IMDb canonical is a generic English phrase (e.g. "Take Care"), a bare
+ * search floods with unrelated content, including porn whose post title happens
+ * to contain the query words. Callers force strict matching on unanchored
+ * queries regardless of the user's loose preference — strict keeps the real
+ * title (parsed title equals the query) while rejecting the flood (parsed title
+ * differs). Anchored queries are self-limiting and respect the user's setting.
+ */
+export function isAnchoredQuery(query: string): boolean {
+  return /s\d{1,3}e\d{1,3}/i.test(query) || /\b(?:19|20)\d{2}\b/.test(query);
+}
+
+/**
  * Sanitize a title for case-insensitive comparison.
  * Handles special characters, accented letters, and common separators.
  */

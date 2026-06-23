@@ -11,6 +11,8 @@ import {
   getQuality,
   getSize,
   isBadVideo,
+  isAdultGroup,
+  isAnchoredQuery,
   logError,
   matchesTitle,
   getAlternativeTitles,
@@ -517,6 +519,7 @@ builder.defineStreamHandler(
       let rejectedSample = 0;
       let rejectedDuplicate = 0;
       let rejectedTitle = 0;
+      let rejectedAdult = 0;
 
       // Apply global limit across all search results
       logger.debug(`Global stream limit: ${TOTAL_MAX_RESULTS} results across all searches`);
@@ -546,6 +549,13 @@ builder.defineStreamHandler(
           // matching the previous short-circuit order, then the duplicate check.
           if (isBadVideo(file)) {
             rejectedSample++;
+            continue;
+          }
+          // Drop posts from adult/porn newsgroups. A generic-English title (e.g.
+          // a foreign show whose IMDb canonical is "Take Care") otherwise floods
+          // unanchored searches with porn cross-posted to erotica/xxx/sex groups.
+          if (isAdultGroup(String(file['9'] ?? ''))) {
+            rejectedAdult++;
             continue;
           }
           if (processedHashes.has(fileHash)) {
@@ -578,8 +588,12 @@ builder.defineStreamHandler(
               queries.push(buildSearchQuery(type, episodeMeta));
             }
 
-            // Use strictTitleMatching setting if enabled for series
-            if (!queries.some(q => matchesTitle(title, q, useStrictMatching))) {
+            // Honor the user's strict setting, but force strict on UNANCHORED
+            // queries (no SxxExx / no year): a bare generic-English title floods
+            // with porn that substring-matches under loose. See isAnchoredQuery.
+            if (
+              !queries.some(q => matchesTitle(title, q, useStrictMatching || !isAnchoredQuery(q)))
+            ) {
               logger.debug(`Rejected series by title matching: "${title}"`);
               rejectedTitle++;
               continue;
@@ -593,8 +607,13 @@ builder.defineStreamHandler(
               ...meta,
               name: titleVariant,
             });
-            // For movies, only use strictTitleMatching if enabled by user, just like for series
-            return matchesTitle(title, variantQuery, useStrictMatching);
+            // Honor the user's strict setting, but force strict on unanchored
+            // queries (no year here) for the same anti-flood reason as series.
+            return matchesTitle(
+              title,
+              variantQuery,
+              useStrictMatching || !isAnchoredQuery(variantQuery)
+            );
           });
 
           if (!matchesAnyVariant) {
@@ -866,6 +885,7 @@ builder.defineStreamHandler(
         // at a glance rather than inferred from many per-file rejection lines.
         const parts: string[] = [];
         if (rejectedSample) parts.push(`${rejectedSample} sample/too-short`);
+        if (rejectedAdult) parts.push(`${rejectedAdult} adult-newsgroup`);
         if (rejectedTitle) parts.push(`${rejectedTitle} title-mismatch`);
         if (rejectedDuplicate) parts.push(`${rejectedDuplicate} duplicate`);
         if (matchedBeforeFilters)
