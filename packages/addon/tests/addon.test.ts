@@ -26,6 +26,8 @@ vi.mock('../src/utils', () => ({
   getQuality: vi.fn().mockReturnValue('1080p'),
   getSize: vi.fn().mockReturnValue('1.5 GB'),
   isBadVideo: vi.fn().mockReturnValue(false),
+  isAdultGroup: vi.fn().mockReturnValue(false),
+  isAnchoredQuery: vi.fn().mockReturnValue(true),
   logError: vi.fn(),
   matchesTitle: vi.fn().mockReturnValue(true),
   getAlternativeTitles: vi.fn().mockReturnValue(['Alternative Title']),

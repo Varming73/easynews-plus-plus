@@ -3,6 +3,8 @@ import {
   matchesTitle,
   sanitizeTitle,
   isBadVideo,
+  isAdultGroup,
+  isAnchoredQuery,
   getQuality,
   extractDigits,
   capitalizeFirstLetter,
@@ -303,6 +305,71 @@ describe('isBadVideo', () => {
       virus: false,
     } as unknown as FileData;
     expect(isBadVideo(badCombination)).toBeTruthy();
+  });
+});
+
+describe('isAdultGroup', () => {
+  it('flags adult newsgroups (real harvested examples)', () => {
+    for (const g of [
+      'alt.binaries.erotica',
+      'alt.binaries.multimedia.erotica.asian',
+      'alt.binaries.pictures.erotica',
+      'alt.binaries.vcd.xxx.private',
+      'alt.binaries.department.pron alt.binaries.erotica',
+      'alt.binaries.erotica.pornstars.80s',
+      'alt.binaries.multimedia.masturbation alt.binaries.pictures.erotica.pirate',
+      'alt.binaries.pictures.erotica.bestiality',
+      'alt.binaries.multimedia.erotica.transsexuals',
+      'alt.sex.youngl',
+      'alt.binaries.sex',
+      'es.binarios.sexo',
+      // cross-posted: neutral group present but an adult one is too -> flagged
+      'alt.binaries.erotica alt.binaries.ijsklontje alt.binaries.kleverig',
+    ]) {
+      expect(isAdultGroup(g), g).toBe(true);
+    }
+  });
+
+  it('does not flag groups that hold legitimate content', () => {
+    for (const g of [
+      'alt.binaries.boneless',
+      'alt.binaries.boneless alt.binaries.multimedia',
+      'alt.binaries.hdtv.x264',
+      'alt.binaries.tv',
+      'alt.binaries.teevee',
+      'alt.binaries.friends', // holds both porn and real shows -> must NOT be blocked
+      'alt.binaries.wtfnzb.beta',
+      'alt.binaries.dvd.midnightmovies',
+      'alt.binaries.essex', // "sex" mid-segment must not match (segment-anchored)
+    ]) {
+      expect(isAdultGroup(g), g).toBe(false);
+    }
+  });
+
+  it('deliberately does NOT flag ambiguous "gay"/"teen" groups (avoid false positives)', () => {
+    expect(isAdultGroup('alt.binaries.movies.gay')).toBe(false);
+    expect(isAdultGroup('alt.binaries.multimedia.teen.male')).toBe(false);
+  });
+
+  it('treats empty/missing group as not-adult', () => {
+    expect(isAdultGroup('')).toBe(false);
+    expect(isAdultGroup(null)).toBe(false);
+    expect(isAdultGroup(undefined)).toBe(false);
+  });
+});
+
+describe('isAnchoredQuery', () => {
+  it('treats episode- and year-bearing queries as anchored', () => {
+    expect(isAnchoredQuery('Take Care S01E01')).toBe(true);
+    expect(isAnchoredQuery('take care s1e1')).toBe(true);
+    expect(isAnchoredQuery('Take Care 2025')).toBe(true);
+    expect(isAnchoredQuery('Blade Runner 2049')).toBe(true);
+  });
+
+  it('treats bare titles as unanchored', () => {
+    expect(isAnchoredQuery('Take Care')).toBe(false);
+    expect(isAnchoredQuery('Loegnen')).toBe(false);
+    expect(isAnchoredQuery('Raw')).toBe(false);
   });
 });
 
