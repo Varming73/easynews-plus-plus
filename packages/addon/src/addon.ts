@@ -446,6 +446,11 @@ builder.defineStreamHandler(
       // (SEARCH_CONCURRENCY=0 or negative) can never stall the batch loop.
       const SEARCH_CONCURRENCY = Math.max(1, parseIntEnv(process.env.SEARCH_CONCURRENCY, 5));
 
+      // Count failed searches (e.g. Easynews timeouts) so an all-failure outcome
+      // isn't mistaken for a genuine "no results" and cached for the long
+      // empty-result TTL. See the empty-result branch below.
+      let searchErrors = 0;
+
       // Run one phase's queries in concurrency-bounded batches, merging results in
       // query order and re-checking the early-exit threshold between batches.
       // Throws on an auth error so the outer handler surfaces the auth-error
@@ -470,6 +475,7 @@ builder.defineStreamHandler(
 
             if (outcome.status === 'rejected') {
               if (isAuthError(outcome.reason)) throw outcome.reason;
+              searchErrors++;
               logger.error(`Error searching for "${query}":`, outcome.reason);
               continue;
             }
@@ -498,7 +504,20 @@ builder.defineStreamHandler(
       }
 
       if (allSearchResults.length === 0) {
-        // Expensive no-result path: the full search fan-out ran and returned
+        // If any search failed (e.g. an Easynews timeout storm), we cannot tell a
+        // genuine "no results" from a transient upstream outage. Treat it like
+        // the outer error handler: short protocol TTL and DELIBERATELY NOT
+        // written to the in-process cache, so recovery is visible within ~1 min
+        // instead of being stuck behind the 10-min empty-result TTL.
+        if (searchErrors > 0) {
+          logger.warn(
+            `All searches for ${id} returned no results, with ${searchErrors} failure(s) ` +
+              `(likely a transient upstream timeout). Not caching as empty.`
+          );
+          return { streams: [], cacheMaxAge: ERROR_CACHE_MAX_AGE };
+        }
+
+        // Genuinely empty: the full search fan-out ran successfully and returned
         // nothing. Cache it (in-process + protocol-level) so repeats don't redo
         // the whole fan-out — this was previously uncached entirely.
         const emptyResult = { streams: [], cacheMaxAge: EMPTY_RESULT_CACHE_MAX_AGE };
