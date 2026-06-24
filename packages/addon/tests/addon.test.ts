@@ -18,6 +18,15 @@ vi.mock('../src/utils', () => ({
   buildSearchQuery: vi.fn().mockImplementation((type, meta) => {
     return `${meta.name} ${meta.year || ''}`.trim();
   }),
+  dedupeIgnoreCase: vi.fn().mockImplementation((queries: string[]) => {
+    const seen = new Set<string>();
+    return queries.filter(q => {
+      const k = q.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }),
   createStreamPath: vi.fn().mockReturnValue('path/to/stream'),
   createStreamUrl: vi.fn().mockReturnValue('https://easynews.com/stream'),
   getDuration: vi.fn().mockReturnValue('120m'),

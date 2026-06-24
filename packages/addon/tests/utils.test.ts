@@ -17,6 +17,7 @@ import {
   getAlternativeTitles,
   getNordicTransliterations,
   buildSearchQuery,
+  dedupeIgnoreCase,
 } from '../src/utils';
 import { FileData } from 'easynews-plus-plus-api';
 import * as parseTorrentTitle from 'parse-torrent-title';
@@ -69,6 +70,31 @@ describe('sanitizeTitle', () => {
     ['ÆØÅ', 'aeoeaa'],
   ])("sanitizes the title '%s'", (input, expected) => {
     expect(sanitizeTitle(input)).toBe(expected);
+  });
+});
+
+describe('dedupeIgnoreCase', () => {
+  it('collapses case-variant duplicates, keeping first-seen order', () => {
+    expect(dedupeIgnoreCase(['loegnen', 'Loegnen', 'Lognen'])).toEqual(['loegnen', 'Lognen']);
+  });
+
+  it('removes exact duplicates (e.g. the series year-phase)', () => {
+    expect(dedupeIgnoreCase(['Take Care S01E01', 'Take Care S01E01'])).toEqual([
+      'Take Care S01E01',
+    ]);
+  });
+
+  it('preserves distinct queries', () => {
+    expect(dedupeIgnoreCase(['Take Care', 'Løgnen', 'loegnen', 'Lognen'])).toEqual([
+      'Take Care',
+      'Løgnen',
+      'loegnen',
+      'Lognen',
+    ]);
+  });
+
+  it('returns an empty array unchanged', () => {
+    expect(dedupeIgnoreCase([])).toEqual([]);
   });
 });
 

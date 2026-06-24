@@ -3,6 +3,7 @@ import { addonBuilder } from '@stremio-addon/compat';
 import { manifest } from './manifest.js';
 import {
   buildSearchQuery,
+  dedupeIgnoreCase,
   createStreamPath,
   createStreamUrl,
   getDuration,
@@ -438,8 +439,19 @@ builder.defineStreamHandler(
         }
         return out;
       };
-      const noYearQueries = buildQueries(false);
-      const yearQueries = meta.year !== undefined ? buildQueries(true) : [];
+      // De-duplicate to avoid spending rate-limited API calls on identical
+      // searches. The no-year phase is deduped case-insensitively; the year
+      // phase additionally drops anything already covered by the no-year phase.
+      // For series this empties the year phase entirely (buildSearchQuery ignores
+      // the year for series, so it produces the same strings) — which previously
+      // re-fired the no-year queries when they failed, adding load during
+      // throttling. Also collapses case variants like "loegnen"/"Loegnen".
+      const noYearQueries = dedupeIgnoreCase(buildQueries(false));
+      const noYearKeys = new Set(noYearQueries.map(q => q.toLowerCase()));
+      const yearQueries =
+        meta.year !== undefined
+          ? dedupeIgnoreCase(buildQueries(true)).filter(q => !noYearKeys.has(q.toLowerCase()))
+          : [];
 
       // BOUNDED concurrency instead of one-at-a-time (the sequential fan-out was
       // the dominant latency cost on a cache miss). Clamp to >= 1 so a misconfig
