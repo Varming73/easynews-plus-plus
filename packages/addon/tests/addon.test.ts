@@ -35,26 +35,31 @@ vi.mock('../src/utils', () => ({
   isAuthError: vi.fn().mockReturnValue(false),
 }));
 
+// Shared search mock so individual tests can make it resolve empty / reject.
+const { mockSearch } = vi.hoisted(() => ({ mockSearch: vi.fn() }));
+
+const DEFAULT_SEARCH_RESULT = {
+  data: [
+    {
+      '0': 'file-hash-1',
+      '4': '1500MB',
+      '5': '2023-01-01',
+      '10': 'Test Movie Title',
+      '11': '.mp4',
+      '14': '120m',
+      fullres: '1920x1080',
+      alangs: ['eng'],
+      rawSize: 1500000000,
+      passwd: false,
+      virus: false,
+      type: 'VIDEO',
+    },
+  ],
+};
+
 vi.mock('easynews-plus-plus-api', () => ({
   EasynewsAPI: vi.fn().mockImplementation(() => ({
-    search: vi.fn().mockResolvedValue({
-      data: [
-        {
-          '0': 'file-hash-1',
-          '4': '1500MB',
-          '5': '2023-01-01',
-          '10': 'Test Movie Title',
-          '11': '.mp4',
-          '14': '120m',
-          fullres: '1920x1080',
-          alangs: ['eng'],
-          rawSize: 1500000000,
-          passwd: false,
-          virus: false,
-          type: 'VIDEO',
-        },
-      ],
-    }),
+    search: mockSearch,
   })),
 }));
 
@@ -129,6 +134,9 @@ import { addonInterface, landingHTML } from '../src/addon';
 describe('Addon', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the shared search mock to the default (success) result each test.
+    mockSearch.mockReset();
+    mockSearch.mockResolvedValue(DEFAULT_SEARCH_RESULT);
   });
 
   it('should export addonInterface', () => {
@@ -182,6 +190,43 @@ describe('Addon', () => {
     for (const stream of result.streams) {
       expect(stream).not.toHaveProperty('_temp');
     }
+  });
+
+  it('does NOT cache as empty when every search fails (transient timeout)', async () => {
+    const streamHandler = (global as any).streamHandler;
+    mockSearch.mockRejectedValue(new Error('The operation was aborted due to timeout'));
+
+    const config = { username: 'u', password: 'p' };
+    const first = await streamHandler({ id: 'tt9990001', type: 'movie', config });
+
+    // Transient: empty streams but short error TTL, not the long empty TTL.
+    expect(first.streams).toEqual([]);
+    expect(first.cacheMaxAge).toBe(60); // ERROR_CACHE_MAX_AGE, not 600
+
+    // And it must NOT be cached in-process: a repeat re-runs the searches.
+    const callsAfterFirst = mockSearch.mock.calls.length;
+    expect(callsAfterFirst).toBeGreaterThan(0);
+    const second = await streamHandler({ id: 'tt9990001', type: 'movie', config });
+    expect(second.cacheMaxAge).toBe(60);
+    expect(mockSearch.mock.calls.length).toBeGreaterThan(callsAfterFirst);
+  });
+
+  it('caches a genuine empty result (searches succeed, zero results)', async () => {
+    const streamHandler = (global as any).streamHandler;
+    mockSearch.mockResolvedValue({ data: [] });
+
+    const config = { username: 'u', password: 'p' };
+    const first = await streamHandler({ id: 'tt9990002', type: 'movie', config });
+
+    // Genuine empty: long empty TTL and cached in-process.
+    expect(first.streams).toEqual([]);
+    expect(first.cacheMaxAge).toBe(600); // EMPTY_RESULT_CACHE_MAX_AGE
+
+    const callsAfterFirst = mockSearch.mock.calls.length;
+    const second = await streamHandler({ id: 'tt9990002', type: 'movie', config });
+    expect(second.streams).toEqual([]);
+    // Served from the in-process cache: no new searches.
+    expect(mockSearch.mock.calls.length).toBe(callsAfterFirst);
   });
 
   it('should handle stream request with missing credentials', async () => {
