@@ -681,6 +681,27 @@ export function getAlternativeTitles(
 }
 
 /**
+ * De-duplicate search queries case-insensitively, preserving first-seen order.
+ *
+ * Easynews search runs on Solr (text fields are lowercased), so queries that
+ * differ only in case return the same results — issuing both just wastes a
+ * rate-limited API call. Used to collapse e.g. "loegnen" vs "Loegnen", and the
+ * series year-phase (which produces strings identical to the no-year phase
+ * because {@link buildSearchQuery} ignores the year for series).
+ */
+export function dedupeIgnoreCase(queries: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const q of queries) {
+    const key = q.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+  }
+  return out;
+}
+
+/**
  * Build a search query for different content types
  */
 export function buildSearchQuery(type: ContentType, meta: MetaProviderResponse) {
