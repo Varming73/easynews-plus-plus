@@ -158,8 +158,7 @@ export const ADDITIONAL_LANGUAGE_CODES: Record<string, string> = {
 //
 // This is the complete set of languages where B differs from T. Codes not listed
 // here (e.g. `eng`, `spa`, `kor`, `dan`) are identical in both variants and pass
-// through unchanged. Note `slo` → `slv` (Slovenian) is the correct mapping; do not
-// copy AIOStreams' `slo → slk` (Slovak) bug.
+// through unchanged.
 export const ISO6392B_TO_T: Record<string, string> = {
   alb: 'sqi', // Albanian
   arm: 'hye', // Armenian
@@ -178,7 +177,7 @@ export const ISO6392B_TO_T: Record<string, string> = {
   may: 'msa', // Malay
   per: 'fas', // Persian
   rum: 'ron', // Romanian
-  slo: 'slv', // Slovenian
+  slo: 'slk', // Slovak
   tib: 'bod', // Tibetan
   wel: 'cym', // Welsh
 };
